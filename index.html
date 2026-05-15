@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Encuesta – Salida Pedagógica a Sesquilé</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --verde: #2d6a4f;
+    --verde-claro: #52b788;
+    --tierra: #a68b5b;
+    --crema: #f9f4ec;
+    --oscuro: #1a2b22;
+    --gris: #6b7c6e;
+    --blanco: #ffffff;
+    --sombra: 0 8px 40px rgba(45,106,79,0.13);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--crema);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  /* Fondo decorativo */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 60% 40% at 10% 20%, rgba(82,183,136,0.15) 0%, transparent 70%),
+      radial-gradient(ellipse 50% 50% at 90% 80%, rgba(166,139,91,0.12) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .hoja {
+    position: fixed;
+    font-size: 5rem;
+    opacity: 0.07;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .hoja-1 { top: 5%; left: 3%; transform: rotate(-20deg); }
+  .hoja-2 { bottom: 10%; right: 4%; transform: rotate(30deg); }
+  .hoja-3 { top: 50%; left: -2%; transform: rotate(10deg); font-size: 8rem; }
+
+  .card {
+    position: relative;
+    z-index: 1;
+    background: var(--blanco);
+    border-radius: 24px;
+    box-shadow: var(--sombra);
+    max-width: 560px;
+    width: 100%;
+    overflow: hidden;
+    animation: aparecer 0.7s cubic-bezier(.22,1,.36,1) both;
+  }
+
+  @keyframes aparecer {
+    from { opacity: 0; transform: translateY(32px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Banner superior */
+  .banner {
+    background: linear-gradient(135deg, var(--verde) 0%, #1b4332 100%);
+    padding: 2.2rem 2.4rem 1.6rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .banner::after {
+    content: '🌿';
+    position: absolute;
+    right: -10px; bottom: -20px;
+    font-size: 9rem;
+    opacity: 0.12;
+    transform: rotate(-15deg);
+    pointer-events: none;
+  }
+  .banner-tag {
+    display: inline-block;
+    background: rgba(255,255,255,0.15);
+    color: #a8e6c4;
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 0.28rem 0.75rem;
+    border-radius: 99px;
+    margin-bottom: 0.9rem;
+  }
+  .banner h1 {
+    font-family: 'Playfair Display', serif;
+    color: var(--blanco);
+    font-size: 1.85rem;
+    line-height: 1.2;
+    font-weight: 900;
+    margin-bottom: 0.5rem;
+  }
+  .banner h1 span { color: #74c69d; }
+  .banner p {
+    color: rgba(255,255,255,0.65);
+    font-size: 0.88rem;
+    font-weight: 300;
+  }
+
+  /* Cuerpo del formulario */
+  .body {
+    padding: 2.2rem 2.4rem 2.4rem;
+  }
+
+  .campo {
+    margin-bottom: 1.5rem;
+  }
+  label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--gris);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+  }
+  input[type="text"] {
+    width: 100%;
+    padding: 0.85rem 1rem;
+    border: 1.5px solid #dde8e0;
+    border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 1rem;
+    color: var(--oscuro);
+    background: #f7fbf8;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    outline: none;
+  }
+  input[type="text"]:focus {
+    border-color: var(--verde-claro);
+    box-shadow: 0 0 0 3px rgba(82,183,136,0.18);
+    background: var(--blanco);
+  }
+  input[type="text"]::placeholder { color: #b0c4b8; }
+
+  /* Divider */
+  .divider {
+    height: 1px;
+    background: linear-gradient(to right, transparent, #dde8e0, transparent);
+    margin: 1.8rem 0;
+  }
+
+  /* Pregunta principal */
+  .pregunta-titulo {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.15rem;
+    color: var(--oscuro);
+    font-weight: 700;
+    margin-bottom: 1.2rem;
+    line-height: 1.4;
+  }
+  .pregunta-titulo span {
+    display: inline-block;
+    background: linear-gradient(90deg, var(--verde), var(--verde-claro));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  /* Opciones de respuesta */
+  .opciones {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .opcion {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 1.2rem;
+    border: 1.5px solid #dde8e0;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: #f7fbf8;
+    position: relative;
+    overflow: hidden;
+  }
+  .opcion::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, var(--verde), var(--verde-claro));
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .opcion:hover { border-color: var(--verde-claro); transform: translateX(3px); }
+  .opcion input[type="radio"] { display: none; }
+
+  .opcion.seleccionada {
+    border-color: var(--verde);
+    background: #edf7f1;
+  }
+  .opcion.seleccionada .radio-custom { background: var(--verde); border-color: var(--verde); }
+  .opcion.seleccionada .radio-custom::after { opacity: 1; }
+  .opcion.seleccionada .opcion-texto { color: var(--verde); font-weight: 500; }
+
+  .radio-custom {
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    border: 2px solid #b0c4b8;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.2s;
+    position: relative;
+    z-index: 1;
+  }
+  .radio-custom::after {
+    content: '';
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: white;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .opcion-icon { font-size: 1.4rem; position: relative; z-index: 1; }
+  .opcion-texto {
+    font-size: 0.97rem;
+    color: var(--oscuro);
+    position: relative;
+    z-index: 1;
+    transition: color 0.2s;
+  }
+
+  /* Chip "No aplica" */
+  .opcion.no-aplica.seleccionada {
+    border-color: var(--tierra);
+    background: #fdf6ec;
+  }
+  .opcion.no-aplica.seleccionada .radio-custom { background: var(--tierra); border-color: var(--tierra); }
+  .opcion.no-aplica.seleccionada .opcion-texto { color: var(--tierra); }
+
+  /* Mensaje de error */
+  .error-msg {
+    display: none;
+    color: #c0392b;
+    font-size: 0.82rem;
+    margin-top: 0.4rem;
+    font-weight: 500;
+  }
+  .error-msg.visible { display: block; }
+
+  /* Botón enviar */
+  .btn-enviar {
+    width: 100%;
+    margin-top: 2rem;
+    padding: 1rem;
+    background: linear-gradient(135deg, var(--verde) 0%, #1b4332 100%);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    letter-spacing: 0.03em;
+    transition: transform 0.15s, box-shadow 0.15s;
+    box-shadow: 0 4px 16px rgba(45,106,79,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+  .btn-enviar:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(45,106,79,0.38); }
+  .btn-enviar:active { transform: translateY(0); }
+
+  /* Panel de resultados */
+  #panel-resultados {
+    display: none;
+    padding: 2.2rem 2.4rem 2.4rem;
+  }
+  #panel-resultados.visible { display: block; }
+
+  .resultado-titulo {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.4rem;
+    color: var(--oscuro);
+    font-weight: 700;
+    margin-bottom: 1.4rem;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0.9rem;
+    margin-bottom: 1.6rem;
+  }
+  .stat-box {
+    background: #f7fbf8;
+    border: 1.5px solid #dde8e0;
+    border-radius: 12px;
+    padding: 1rem 0.8rem;
+    text-align: center;
+  }
+  .stat-box.verde { border-color: var(--verde-claro); background: #edf7f1; }
+  .stat-box.rojo  { border-color: #e07070; background: #fdf2f2; }
+  .stat-box.tierra{ border-color: var(--tierra); background: #fdf6ec; }
+  .stat-num {
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem;
+    font-weight: 900;
+    color: var(--oscuro);
+    line-height: 1;
+  }
+  .stat-box.verde .stat-num { color: var(--verde); }
+  .stat-box.rojo  .stat-num { color: #c0392b; }
+  .stat-box.tierra .stat-num { color: var(--tierra); }
+  .stat-label { font-size: 0.75rem; color: var(--gris); margin-top: 0.3rem; font-weight: 500; }
+
+  /* Tabla de respuestas */
+  .tabla-wrap {
+    overflow-x: auto;
+    border-radius: 12px;
+    border: 1.5px solid #dde8e0;
+    margin-bottom: 1.5rem;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+  }
+  thead tr { background: var(--verde); color: white; }
+  th { padding: 0.75rem 1rem; text-align: left; font-weight: 500; letter-spacing: 0.04em; }
+  td { padding: 0.7rem 1rem; border-bottom: 1px solid #eef3ef; color: var(--oscuro); }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover td { background: #f2faf5; }
+
+  .badge {
+    display: inline-block;
+    padding: 0.2rem 0.7rem;
+    border-radius: 99px;
+    font-size: 0.78rem;
+    font-weight: 500;
+  }
+  .badge-si   { background: #d4edda; color: #1a6635; }
+  .badge-no   { background: #fde8e8; color: #a02020; }
+  .badge-na   { background: #fef3e2; color: #8a6020; }
+
+  .btn-descargar {
+    width: 100%;
+    padding: 0.95rem;
+    background: var(--tierra);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.97rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+    box-shadow: 0 4px 14px rgba(166,139,91,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-bottom: 0.8rem;
+  }
+  .btn-descargar:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(166,139,91,0.38); }
+
+  .btn-nueva {
+    width: 100%;
+    padding: 0.85rem;
+    background: transparent;
+    color: var(--verde);
+    border: 1.5px solid var(--verde-claro);
+    border-radius: 12px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .btn-nueva:hover { background: #edf7f1; }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 2rem; left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--oscuro);
+    color: white;
+    padding: 0.8rem 1.6rem;
+    border-radius: 99px;
+    font-size: 0.88rem;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+    transition: transform 0.4s cubic-bezier(.22,1,.36,1), opacity 0.4s;
+    opacity: 0;
+    z-index: 100;
+    white-space: nowrap;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+</style>
+</head>
+<body>
+
+<!-- Hojas decorativas -->
+<div class="hoja hoja-1">🌿</div>
+<div class="hoja hoja-2">🍃</div>
+<div class="hoja hoja-3">🌱</div>
+
+<div class="card" id="card-encuesta">
+  <!-- Banner -->
+  <div class="banner">
+    <div class="banner-tag">📋 Encuesta Institucional</div>
+    <h1>Salida Pedagógica<br>a <span>Sesquilé</span></h1>
+    <p>Por favor completa el formulario con tu información.</p>
+  </div>
+
+  <!-- Formulario -->
+  <div class="body">
+    <!-- ID de usuario -->
+    <div class="campo">
+      <label for="user-id">ID de estudiante / funcionario</label>
+      <input type="text" id="user-id" placeholder="Ej: 20231045" maxlength="20">
+      <div class="error-msg" id="err-id">⚠ Por favor ingresa tu ID antes de continuar.</div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Pregunta -->
+    <div class="pregunta-titulo">
+      ¿<span>Participará</span> en la salida pedagógica a Sesquilé?
+    </div>
+
+    <div class="opciones" id="opciones">
+      <label class="opcion" id="op-si">
+        <input type="radio" name="respuesta" value="Sí">
+        <div class="radio-custom"></div>
+        <span class="opcion-icon">✅</span>
+        <span class="opcion-texto">Sí, participaré</span>
+      </label>
+
+      <label class="opcion" id="op-no">
+        <input type="radio" name="respuesta" value="No">
+        <div class="radio-custom"></div>
+        <span class="opcion-icon">❌</span>
+        <span class="opcion-texto">No, no participaré</span>
+      </label>
+
+      <label class="opcion no-aplica" id="op-na">
+        <input type="radio" name="respuesta" value="No aplica">
+        <div class="radio-custom"></div>
+        <span class="opcion-icon">🔹</span>
+        <span class="opcion-texto">No me aplica</span>
+      </label>
+    </div>
+    <div class="error-msg" id="err-resp">⚠ Selecciona una opción de respuesta.</div>
+
+    <button class="btn-enviar" onclick="enviar()">
+      <span>📩</span> Enviar respuesta
+    </button>
+  </div>
+</div>
+
+<!-- Panel de resultados -->
+<div class="card" id="card-resultados" style="display:none;">
+  <div class="banner">
+    <div class="banner-tag">📊 Resultados registrados</div>
+    <h1>Resumen de<br><span>Respuestas</span></h1>
+    <p>Aquí puedes ver todas las respuestas registradas y descargarlas.</p>
+  </div>
+
+  <div id="panel-resultados" class="visible">
+    <div class="resultado-titulo">📋 Estadísticas</div>
+
+    <div class="stats-grid">
+      <div class="stat-box verde">
+        <div class="stat-num" id="cnt-si">0</div>
+        <div class="stat-label">Sí participa</div>
+      </div>
+      <div class="stat-box rojo">
+        <div class="stat-num" id="cnt-no">0</div>
+        <div class="stat-label">No participa</div>
+      </div>
+      <div class="stat-box tierra">
+        <div class="stat-num" id="cnt-na">0</div>
+        <div class="stat-label">No aplica</div>
+      </div>
+    </div>
+
+    <div class="tabla-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>ID</th>
+            <th>Respuesta</th>
+            <th>Hora</th>
+          </tr>
+        </thead>
+        <tbody id="tabla-body"></tbody>
+      </table>
+    </div>
+
+    <button class="btn-descargar" onclick="descargarCSV()">
+      ⬇ Descargar resultados (.csv)
+    </button>
+    <button class="btn-nueva" onclick="nuevaRespuesta()">
+      ➕ Registrar otra respuesta
+    </button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // Almacenamiento en memoria
+  let respuestas = [];
+
+  // Manejo visual de opciones
+  document.querySelectorAll('.opcion').forEach(op => {
+    op.addEventListener('click', () => {
+      document.querySelectorAll('.opcion').forEach(o => o.classList.remove('seleccionada'));
+      op.classList.add('seleccionada');
+      document.getElementById('err-resp').classList.remove('visible');
+    });
+  });
+
+  function enviar() {
+    const id = document.getElementById('user-id').value.trim();
+    const seleccionada = document.querySelector('.opcion.seleccionada input');
+
+    let valido = true;
+
+    if (!id) {
+      document.getElementById('err-id').classList.add('visible');
+      valido = false;
+    } else {
+      document.getElementById('err-id').classList.remove('visible');
+    }
+
+    if (!seleccionada) {
+      document.getElementById('err-resp').classList.add('visible');
+      valido = false;
+    } else {
+      document.getElementById('err-resp').classList.remove('visible');
+    }
+
+    if (!valido) return;
+
+    const hora = new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+    const fecha = new Date().toLocaleDateString('es-CO');
+
+    respuestas.push({
+      numero: respuestas.length + 1,
+      id,
+      respuesta: seleccionada.value,
+      hora,
+      fecha
+    });
+
+    actualizarResultados();
+    mostrarResultados();
+    mostrarToast('✅ Respuesta registrada correctamente');
+  }
+
+  function actualizarResultados() {
+    const si = respuestas.filter(r => r.respuesta === 'Sí').length;
+    const no = respuestas.filter(r => r.respuesta === 'No').length;
+    const na = respuestas.filter(r => r.respuesta === 'No aplica').length;
+
+    document.getElementById('cnt-si').textContent = si;
+    document.getElementById('cnt-no').textContent = no;
+    document.getElementById('cnt-na').textContent = na;
+
+    const tbody = document.getElementById('tabla-body');
+    tbody.innerHTML = respuestas.map(r => {
+      const badgeClass = r.respuesta === 'Sí' ? 'badge-si' : r.respuesta === 'No' ? 'badge-no' : 'badge-na';
+      return `<tr>
+        <td>${r.numero}</td>
+        <td><strong>${r.id}</strong></td>
+        <td><span class="badge ${badgeClass}">${r.respuesta}</span></td>
+        <td>${r.fecha} ${r.hora}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  function mostrarResultados() {
+    document.getElementById('card-encuesta').style.display = 'none';
+    document.getElementById('card-resultados').style.display = 'block';
+  }
+
+  function nuevaRespuesta() {
+    // Limpiar formulario
+    document.getElementById('user-id').value = '';
+    document.querySelectorAll('.opcion').forEach(o => o.classList.remove('seleccionada'));
+    document.querySelectorAll('.opcion input').forEach(i => i.checked = false);
+    document.getElementById('err-id').classList.remove('visible');
+    document.getElementById('err-resp').classList.remove('visible');
+
+    document.getElementById('card-resultados').style.display = 'none';
+    document.getElementById('card-encuesta').style.display = 'block';
+  }
+
+  function descargarCSV() {
+    if (respuestas.length === 0) {
+      mostrarToast('⚠ No hay respuestas para descargar.');
+      return;
+    }
+
+    const encabezado = ['#', 'ID', 'Respuesta', 'Fecha', 'Hora'];
+    const filas = respuestas.map(r => [r.numero, r.id, r.respuesta, r.fecha, r.hora]);
+
+    const csvContent = [encabezado, ...filas]
+      .map(fila => fila.map(celda => `"${celda}"`).join(','))
+      .join('\n');
+
+    const bom = '\uFEFF'; // UTF-8 BOM para que Excel lo abra bien
+    const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `encuesta_sesquile_${new Date().toLocaleDateString('es-CO').replace(/\//g,'-')}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    mostrarToast('📥 Archivo descargado correctamente');
+  }
+
+  function mostrarToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3000);
+  }
+</script>
+</body>
+</html>
