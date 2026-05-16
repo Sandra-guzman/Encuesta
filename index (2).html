@@ -1,0 +1,3629 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DiffEQ Quest — Ecuaciones Diferenciales</title>
+<style>
+/* =========================================
+   VARIABLES Y RESET GLOBAL
+   ========================================= */
+:root {
+  --bg-deep:       #03020a;
+  --bg-card:       #0d0b1e;
+  --bg-card2:      #13102a;
+  --border:        rgba(100, 80, 255, 0.25);
+  --border-bright: rgba(120, 100, 255, 0.6);
+  --neon-blue:     #4fc3f7;
+  --neon-purple:   #a78bfa;
+  --neon-pink:     #f472b6;
+  --neon-green:    #34d399;
+  --neon-yellow:   #fbbf24;
+  --text-main:     #e2e0f5;
+  --text-muted:    #7c7a9c;
+  --text-dim:      #3d3b5c;
+  --grad-main:     linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #a21caf 100%);
+  --grad-blue:     linear-gradient(135deg, #0ea5e9 0%, #4f46e5 100%);
+  --grad-correct:  linear-gradient(135deg, #064e3b 0%, #065f46 100%);
+  --grad-wrong:    linear-gradient(135deg, #450a0a 0%, #7f1d1d 100%);
+  --shadow-neon:   0 0 20px rgba(79, 70, 229, 0.4), 0 0 60px rgba(79, 70, 229, 0.15);
+  --shadow-card:   0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3);
+  --radius:        16px;
+  --radius-sm:     10px;
+  --font-display:  'Courier New', monospace;
+  --font-body:     'Segoe UI', system-ui, sans-serif;
+  --transition:    0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font-body);
+  background: var(--bg-deep);
+  color: var(--text-main);
+  min-height: 100vh;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* =========================================
+   FONDO ANIMADO CON GRID Y PARTÍCULAS
+   ========================================= */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(79,70,229,0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(79,70,229,0.06) 1px, transparent 1px);
+  background-size: 50px 50px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 60% 40% at 20% 20%, rgba(79,70,229,0.12) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 80% 80%, rgba(162,28,175,0.10) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 60% at 50% 50%, rgba(15,23,42,0.8) 0%, transparent 100%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.screen {
+  position: relative;
+  z-index: 1;
+  display: none;
+  min-height: 100vh;
+  padding: 20px;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}
+
+.screen.active { display: flex; }
+
+/* =========================================
+   PARTÍCULAS FLOTANTES (decorativas)
+   ========================================= */
+.particle {
+  position: fixed;
+  font-size: 14px;
+  color: rgba(167, 139, 250, 0.15);
+  pointer-events: none;
+  animation: floatParticle linear infinite;
+  z-index: 0;
+  font-family: var(--font-display);
+}
+
+@keyframes floatParticle {
+  0%   { transform: translateY(110vh) rotate(0deg); opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { transform: translateY(-10vh) rotate(360deg); opacity: 0; }
+}
+
+/* =========================================
+   TIPOGRAFÍA
+   ========================================= */
+h1 {
+  font-family: var(--font-display);
+  font-size: clamp(1.8rem, 5vw, 3.2rem);
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+h2 {
+  font-family: var(--font-display);
+  font-size: clamp(1.2rem, 3vw, 1.8rem);
+  letter-spacing: 1px;
+}
+
+h3 { font-size: 1.1rem; font-weight: 600; }
+
+.gradient-text {
+  background: var(--grad-main);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.neon-text {
+  color: var(--neon-blue);
+  text-shadow: 0 0 10px rgba(79,195,247,0.5), 0 0 30px rgba(79,195,247,0.2);
+}
+
+/* =========================================
+   CARD BASE
+   ========================================= */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 32px;
+  box-shadow: var(--shadow-card);
+  width: 100%;
+  max-width: 680px;
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(10px);
+}
+
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--grad-main);
+  opacity: 0.8;
+}
+
+/* =========================================
+   BOTONES
+   ========================================= */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 32px;
+  border: none;
+  border-radius: 100px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  font-family: var(--font-body);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(255,255,255,0);
+  transition: var(--transition);
+}
+
+.btn:hover::after { background: rgba(255,255,255,0.08); }
+
+.btn-primary {
+  background: var(--grad-main);
+  color: #fff;
+  box-shadow: 0 4px 20px rgba(79,70,229,0.4);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(79,70,229,0.5);
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--neon-purple);
+  border: 1px solid var(--border-bright);
+}
+
+.btn-secondary:hover {
+  background: rgba(124,58,237,0.15);
+  transform: translateY(-2px);
+}
+
+.btn-danger {
+  background: linear-gradient(135deg, #dc2626, #991b1b);
+  color: #fff;
+  box-shadow: 0 4px 20px rgba(220,38,38,0.3);
+}
+
+/* =========================================
+   PANTALLA 1: BIENVENIDA
+   ========================================= */
+#screen-welcome {
+  text-align: center;
+  gap: 0;
+}
+
+.welcome-logo {
+  font-family: var(--font-display);
+  font-size: clamp(3rem, 8vw, 6rem);
+  line-height: 1;
+  margin-bottom: 8px;
+  animation: pulseGlow 3s ease-in-out infinite;
+}
+
+@keyframes pulseGlow {
+  0%, 100% { filter: drop-shadow(0 0 15px rgba(79,195,247,0.4)); }
+  50%       { filter: drop-shadow(0 0 35px rgba(167,139,250,0.6)); }
+}
+
+.welcome-subtitle {
+  font-size: clamp(0.75rem, 2vw, 0.95rem);
+  color: var(--text-muted);
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  margin-bottom: 48px;
+}
+
+.welcome-card {
+  max-width: 560px;
+  text-align: center;
+}
+
+.welcome-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin: 20px 0 28px;
+}
+
+.tag {
+  background: rgba(79,70,229,0.15);
+  border: 1px solid rgba(79,70,229,0.3);
+  color: var(--neon-purple);
+  padding: 4px 12px;
+  border-radius: 100px;
+  font-size: 0.75rem;
+  letter-spacing: 0.5px;
+}
+
+/* =========================================
+   PANTALLA 2: LOGIN
+   ========================================= */
+.form-group {
+  margin-bottom: 20px;
+  text-align: left;
+}
+
+.form-group label {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.form-group input, .form-group select {
+  width: 100%;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+  font-size: 1rem;
+  color: var(--text-main);
+  outline: none;
+  transition: var(--transition);
+  font-family: var(--font-body);
+}
+
+.form-group input:focus, .form-group select:focus {
+  border-color: var(--neon-purple);
+  box-shadow: 0 0 0 3px rgba(124,58,237,0.15);
+  background: rgba(124,58,237,0.05);
+}
+
+.form-group select option { background: var(--bg-card2); }
+
+.avatar-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.avatar-btn {
+  aspect-ratio: 1;
+  background: rgba(255,255,255,0.04);
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  font-size: 1.4rem;
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-btn:hover { background: rgba(124,58,237,0.2); border-color: var(--neon-purple); transform: scale(1.05); }
+.avatar-btn.selected { border-color: var(--neon-purple); background: rgba(124,58,237,0.25); box-shadow: 0 0 15px rgba(124,58,237,0.3); }
+
+/* =========================================
+   PANTALLA 3: INSTRUCCIONES
+   ========================================= */
+.instructions-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin: 20px 0;
+}
+
+@media (max-width: 540px) { .instructions-grid { grid-template-columns: 1fr; } }
+
+.instr-item {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.instr-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.instr-title { font-size: 0.85rem; font-weight: 700; color: var(--neon-blue); margin-bottom: 4px; }
+.instr-desc  { font-size: 0.8rem; color: var(--text-muted); line-height: 1.5; }
+
+.points-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0;
+  font-size: 0.88rem;
+}
+
+.points-table th {
+  text-align: left;
+  padding: 10px 14px;
+  background: rgba(79,70,229,0.15);
+  color: var(--neon-purple);
+  font-size: 0.75rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.points-table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-main);
+}
+
+.points-table tr:last-child td { border-bottom: none; }
+
+.diff-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 100px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.diff-easy   { background: rgba(52,211,153,0.15); color: var(--neon-green); border: 1px solid rgba(52,211,153,0.3); }
+.diff-media  { background: rgba(251,191,36,0.15);  color: var(--neon-yellow); border: 1px solid rgba(251,191,36,0.3); }
+.diff-dificil{ background: rgba(249,115,22,0.15);  color: #fb923c; border: 1px solid rgba(249,115,22,0.3); }
+.diff-experto{ background: rgba(244,63,94,0.15);   color: #fb7185; border: 1px solid rgba(244,63,94,0.3); }
+
+/* =========================================
+   PANTALLA 4: JUEGO
+   ========================================= */
+#screen-game { padding: 16px; gap: 12px; justify-content: flex-start; padding-top: 20px; }
+
+/* Header del juego */
+.game-header {
+  width: 100%;
+  max-width: 760px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.player-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.player-avatar {
+  width: 42px; height: 42px;
+  background: rgba(124,58,237,0.2);
+  border: 2px solid var(--neon-purple);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+}
+
+.player-name { font-weight: 700; font-size: 0.95rem; }
+.player-score-label { font-size: 0.72rem; color: var(--text-muted); letter-spacing: 1px; text-transform: uppercase; }
+
+.score-display {
+  text-align: right;
+}
+
+.score-value {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--neon-yellow);
+  text-shadow: 0 0 15px rgba(251,191,36,0.4);
+  line-height: 1;
+}
+
+/* Barra de progreso */
+.progress-section {
+  width: 100%;
+  max-width: 760px;
+}
+
+.progress-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.progress-bar-wrap {
+  width: 100%;
+  height: 6px;
+  background: rgba(255,255,255,0.07);
+  border-radius: 100px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: var(--grad-main);
+  border-radius: 100px;
+  transition: width 0.5s ease;
+  box-shadow: 0 0 10px rgba(124,58,237,0.5);
+}
+
+/* Indicadores de vida y racha */
+.game-stats {
+  width: 100%;
+  max-width: 760px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.lives-display { display: flex; gap: 4px; }
+.life { font-size: 1.2rem; transition: var(--transition); }
+.life.lost { filter: grayscale(1); opacity: 0.3; transform: scale(0.8); }
+
+.streak-display {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(251,191,36,0.1);
+  border: 1px solid rgba(251,191,36,0.2);
+  border-radius: 100px;
+  padding: 4px 12px;
+  font-size: 0.82rem;
+  color: var(--neon-yellow);
+}
+
+.streak-count { font-weight: 700; font-family: var(--font-display); }
+
+/* Temporizador */
+.timer-section {
+  width: 100%;
+  max-width: 760px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.timer-circle {
+  width: 58px;
+  height: 58px;
+  flex-shrink: 0;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.timer-svg { transform: rotate(-90deg); }
+.timer-bg  { fill: none; stroke: rgba(255,255,255,0.08); stroke-width: 4; }
+.timer-ring {
+  fill: none;
+  stroke: var(--neon-blue);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-dasharray: 163;
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset 1s linear, stroke 0.3s ease;
+  filter: drop-shadow(0 0 4px rgba(79,195,247,0.6));
+}
+
+.timer-ring.warning  { stroke: var(--neon-yellow); filter: drop-shadow(0 0 4px rgba(251,191,36,0.6)); }
+.timer-ring.danger   { stroke: var(--neon-pink);   filter: drop-shadow(0 0 4px rgba(244,114,182,0.7)); }
+
+.timer-number {
+  position: absolute;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--neon-blue);
+  transition: color 0.3s;
+}
+
+.timer-number.warning { color: var(--neon-yellow); }
+.timer-number.danger  { color: var(--neon-pink); animation: timerPulse 0.5s ease-in-out infinite; }
+
+@keyframes timerPulse {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.15); }
+}
+
+.timer-bar-wrap {
+  flex: 1;
+  height: 8px;
+  background: rgba(255,255,255,0.07);
+  border-radius: 100px;
+  overflow: hidden;
+}
+
+.timer-bar-fill {
+  height: 100%;
+  border-radius: 100px;
+  transition: width 1s linear, background 0.3s;
+}
+
+/* Tarjeta de pregunta */
+.question-card {
+  width: 100%;
+  max-width: 760px;
+}
+
+.question-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.q-number { font-size: 0.78rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+
+.question-text {
+  font-size: clamp(0.95rem, 2.5vw, 1.1rem);
+  line-height: 1.65;
+  color: var(--text-main);
+  margin-bottom: 22px;
+  font-weight: 500;
+}
+
+.options-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 520px) { .options-grid { grid-template-columns: 1fr; } }
+
+.option-btn {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px 18px;
+  color: var(--text-main);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: var(--transition);
+  text-align: left;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-family: var(--font-body);
+  line-height: 1.5;
+  position: relative;
+  overflow: hidden;
+}
+
+.option-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, transparent 40%, rgba(124,58,237,0.05));
+  opacity: 0;
+  transition: var(--transition);
+}
+
+.option-btn:hover:not(:disabled) {
+  border-color: var(--neon-purple);
+  background: rgba(124,58,237,0.12);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(124,58,237,0.2);
+}
+
+.option-btn:hover:not(:disabled)::before { opacity: 1; }
+
+.option-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: rgba(124,58,237,0.15);
+  border: 1px solid rgba(124,58,237,0.3);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--neon-purple);
+  flex-shrink: 0;
+  font-family: var(--font-display);
+  transition: var(--transition);
+}
+
+.option-btn.correct {
+  border-color: var(--neon-green);
+  background: var(--grad-correct);
+  animation: correctPulse 0.5s ease;
+  cursor: default;
+}
+
+.option-btn.correct .option-label {
+  background: rgba(52,211,153,0.3);
+  border-color: var(--neon-green);
+  color: var(--neon-green);
+}
+
+.option-btn.wrong {
+  border-color: var(--neon-pink);
+  background: var(--grad-wrong);
+  animation: wrongShake 0.5s ease;
+  cursor: default;
+}
+
+.option-btn.wrong .option-label {
+  background: rgba(244,114,182,0.2);
+  border-color: var(--neon-pink);
+  color: var(--neon-pink);
+}
+
+.option-btn:disabled { cursor: default; }
+
+@keyframes correctPulse {
+  0%   { transform: scale(0.98); }
+  50%  { transform: scale(1.02); box-shadow: 0 0 25px rgba(52,211,153,0.4); }
+  100% { transform: scale(1); }
+}
+
+@keyframes wrongShake {
+  0%, 100% { transform: translateX(0); }
+  20%       { transform: translateX(-6px); }
+  40%       { transform: translateX(6px); }
+  60%       { transform: translateX(-4px); }
+  80%       { transform: translateX(4px); }
+}
+
+/* Feedback */
+.feedback-bar {
+  width: 100%;
+  max-width: 760px;
+  padding: 14px 20px;
+  border-radius: var(--radius-sm);
+  display: none;
+  align-items: center;
+  gap: 14px;
+  animation: slideUp 0.3s ease;
+  flex-wrap: wrap;
+}
+
+.feedback-bar.show { display: flex; }
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.feedback-bar.correct-fb {
+  background: rgba(52,211,153,0.1);
+  border: 1px solid rgba(52,211,153,0.3);
+}
+
+.feedback-bar.wrong-fb {
+  background: rgba(244,114,182,0.08);
+  border: 1px solid rgba(244,114,182,0.25);
+}
+
+.feedback-icon { font-size: 1.5rem; flex-shrink: 0; }
+.feedback-text { flex: 1; }
+.feedback-title { font-weight: 700; font-size: 0.9rem; margin-bottom: 2px; }
+.feedback-desc  { font-size: 0.82rem; color: var(--text-muted); line-height: 1.5; }
+.feedback-points {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-weight: 700;
+  padding: 4px 14px;
+  border-radius: 100px;
+  flex-shrink: 0;
+}
+
+.feedback-points.gained { color: var(--neon-green); background: rgba(52,211,153,0.1); }
+.feedback-points.lost   { color: var(--neon-pink);  background: rgba(244,114,182,0.1); }
+
+/* Bonus flotante */
+.bonus-popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  background: var(--grad-main);
+  color: #fff;
+  padding: 14px 32px;
+  border-radius: 100px;
+  font-size: 1.2rem;
+  font-weight: 700;
+  font-family: var(--font-display);
+  z-index: 100;
+  pointer-events: none;
+  box-shadow: 0 0 40px rgba(124,58,237,0.6);
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease;
+  opacity: 0;
+}
+
+.bonus-popup.show {
+  transform: translate(-50%, -50%) scale(1);
+  opacity: 1;
+}
+
+/* =========================================
+   PANTALLA 5: RESULTADOS
+   ========================================= */
+.result-hero {
+  text-align: center;
+  padding: 24px 0 12px;
+}
+
+.result-avatar {
+  width: 80px;
+  height: 80px;
+  background: rgba(124,58,237,0.2);
+  border: 3px solid var(--neon-purple);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.5rem;
+  margin: 0 auto 14px;
+  box-shadow: 0 0 30px rgba(124,58,237,0.3);
+}
+
+.final-score {
+  font-family: var(--font-display);
+  font-size: clamp(3rem, 8vw, 5rem);
+  font-weight: 700;
+  color: var(--neon-yellow);
+  text-shadow: 0 0 20px rgba(251,191,36,0.5);
+  line-height: 1;
+  margin: 8px 0 4px;
+}
+
+.final-score-label { font-size: 0.8rem; color: var(--text-muted); letter-spacing: 2px; text-transform: uppercase; }
+
+.result-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin: 20px 0;
+}
+
+@media (max-width: 480px) { .result-stats { grid-template-columns: 1fr 1fr; } }
+
+.stat-box {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px 10px;
+  text-align: center;
+}
+
+.stat-value { font-size: 1.5rem; font-weight: 700; font-family: var(--font-display); }
+.stat-label { font-size: 0.72rem; color: var(--text-muted); letter-spacing: 1px; text-transform: uppercase; margin-top: 2px; }
+
+.badges-section { margin: 16px 0; }
+.badges-title { font-size: 0.8rem; color: var(--text-muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 10px; }
+.badges-grid  { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.badge-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  transition: var(--transition);
+}
+
+.badge-item.earned {
+  background: rgba(124,58,237,0.15);
+  border-color: var(--neon-purple);
+  color: var(--neon-purple);
+}
+
+.badge-item.earned .badge-icon { filter: none; }
+.badge-icon { font-size: 1rem; filter: grayscale(1) opacity(0.4); }
+
+/* =========================================
+   PANTALLA 6: RANKING
+   ========================================= */
+.ranking-header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.ranking-podium {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 8px;
+  margin: 20px 0;
+  height: 130px;
+}
+
+.podium-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.podium-avatar { font-size: 1.6rem; }
+.podium-name   { font-size: 0.78rem; font-weight: 600; max-width: 80px; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.podium-score  { font-family: var(--font-display); font-size: 0.85rem; font-weight: 700; }
+
+.podium-block {
+  border-radius: 8px 8px 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 700;
+  width: 64px;
+}
+
+.podium-1 { height: 100px; background: linear-gradient(180deg, #fbbf24, #d97706); color: #1a0f00; }
+.podium-2 { height: 75px;  background: linear-gradient(180deg, #94a3b8, #64748b); color: #0f172a; }
+.podium-3 { height: 55px;  background: linear-gradient(180deg, #c07a4b, #9a5d2e); color: #1a0a00; }
+
+.ranking-list {
+  list-style: none;
+  margin-top: 12px;
+}
+
+.ranking-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 6px;
+  border: 1px solid transparent;
+  transition: var(--transition);
+}
+
+.ranking-row:hover { background: rgba(255,255,255,0.03); border-color: var(--border); }
+.ranking-row.highlight { background: rgba(124,58,237,0.1); border-color: rgba(124,58,237,0.3); }
+
+.rank-pos {
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  font-weight: 700;
+  width: 28px;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.rank-avatar { font-size: 1.2rem; }
+.rank-name { flex: 1; font-weight: 600; font-size: 0.9rem; }
+.rank-info { display: flex; flex-direction: column; align-items: flex-end; }
+.rank-score { font-family: var(--font-display); font-weight: 700; color: var(--neon-yellow); font-size: 1rem; }
+.rank-meta  { font-size: 0.72rem; color: var(--text-muted); }
+
+.ranking-empty {
+  text-align: center;
+  padding: 30px;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+/* =========================================
+   UTILIDADES
+   ========================================= */
+.text-center { text-align: center; }
+.mb-4  { margin-bottom: 4px; }
+.mb-8  { margin-bottom: 8px; }
+.mb-16 { margin-bottom: 16px; }
+.mb-24 { margin-bottom: 24px; }
+.mt-16 { margin-top: 16px; }
+.mt-24 { margin-top: 24px; }
+
+.divider {
+  width: 100%;
+  height: 1px;
+  background: var(--border);
+  margin: 20px 0;
+}
+
+.btn-row {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 20px;
+}
+
+.section-title {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: 12px;
+}
+
+/* Scroll para pantallas largas */
+.scrollable { max-height: 80vh; overflow-y: auto; width: 100%; max-width: 680px; }
+.scrollable::-webkit-scrollbar { width: 4px; }
+.scrollable::-webkit-scrollbar-track { background: transparent; }
+.scrollable::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 2px; }
+
+/* Modo supervivencia badge */
+.survival-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(244,63,94,0.15);
+  border: 1px solid rgba(244,63,94,0.3);
+  border-radius: 100px;
+  padding: 4px 12px;
+  font-size: 0.8rem;
+  color: #fb7185;
+  font-weight: 600;
+}
+
+/* Animación de entrada para cards */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-in { animation: fadeInUp 0.5s ease forwards; }
+
+/* Mensaje "una sola vez" */
+.played-notice {
+  background: rgba(251,191,36,0.08);
+  border: 1px solid rgba(251,191,36,0.2);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  text-align: center;
+  color: var(--neon-yellow);
+  font-size: 0.88rem;
+  margin-top: 12px;
+}
+
+/* Responsive ajustes finos */
+@media (max-width: 400px) {
+  .card { padding: 20px; }
+  .game-header { gap: 8px; }
+}
+
+/* Ripple effect para opciones */
+.ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(124,58,237,0.3);
+  transform: scale(0);
+  animation: rippleEffect 0.6s linear;
+  pointer-events: none;
+}
+
+@keyframes rippleEffect {
+  to { transform: scale(4); opacity: 0; }
+}
+
+/* =========================================
+   BOTÓN ADMIN OCULTO (esquina inferior)
+   ========================================= */
+.admin-trigger {
+  position: fixed;
+  bottom: 18px;
+  right: 18px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  cursor: pointer;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  color: rgba(255,255,255,0.12);
+  transition: var(--transition);
+  user-select: none;
+}
+.admin-trigger:hover {
+  background: rgba(79,70,229,0.2);
+  border-color: rgba(79,70,229,0.4);
+  color: var(--neon-purple);
+}
+
+/* =========================================
+   PANTALLA ADMIN LOGIN
+   ========================================= */
+#screen-admin-login { gap: 0; }
+
+.admin-login-card {
+  max-width: 420px;
+  text-align: center;
+}
+
+.admin-icon {
+  font-size: 3rem;
+  margin-bottom: 12px;
+  display: block;
+}
+
+.admin-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(251,191,36,0.12);
+  border: 1px solid rgba(251,191,36,0.3);
+  border-radius: 100px;
+  padding: 4px 14px;
+  font-size: 0.75rem;
+  color: var(--neon-yellow);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  font-weight: 700;
+  margin-bottom: 20px;
+}
+
+.pin-display {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin: 20px 0;
+}
+
+.pin-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.08);
+  border: 2px solid var(--border);
+  transition: var(--transition);
+}
+
+.pin-dot.filled {
+  background: var(--neon-purple);
+  border-color: var(--neon-purple);
+  box-shadow: 0 0 10px rgba(124,58,237,0.5);
+}
+
+.numpad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  max-width: 280px;
+  margin: 0 auto 20px;
+}
+
+.numpad-btn {
+  aspect-ratio: 1;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-main);
+  font-size: 1.2rem;
+  font-weight: 600;
+  font-family: var(--font-display);
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.numpad-btn:hover {
+  background: rgba(124,58,237,0.2);
+  border-color: var(--neon-purple);
+  transform: scale(1.05);
+}
+
+.numpad-btn.del {
+  color: var(--neon-pink);
+  font-size: 1rem;
+}
+
+.numpad-btn.enter {
+  background: rgba(79,70,229,0.2);
+  border-color: rgba(79,70,229,0.4);
+  color: var(--neon-blue);
+}
+
+.pin-error {
+  color: var(--neon-pink);
+  font-size: 0.85rem;
+  min-height: 20px;
+  animation: wrongShake 0.4s ease;
+}
+
+/* =========================================
+   PANTALLA ADMIN PANEL
+   ========================================= */
+#screen-admin { padding: 16px; justify-content: flex-start; padding-top: 20px; gap: 14px; }
+
+.admin-header {
+  width: 100%;
+  max-width: 900px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.admin-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-title h2 { font-size: 1.2rem; }
+
+/* KPI cards */
+.kpi-grid {
+  width: 100%;
+  max-width: 900px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 640px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 380px) { .kpi-grid { grid-template-columns: 1fr; } }
+
+.kpi-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+}
+
+.kpi-card.kpi-blue::before   { background: var(--neon-blue); }
+.kpi-card.kpi-purple::before { background: var(--neon-purple); }
+.kpi-card.kpi-green::before  { background: var(--neon-green); }
+.kpi-card.kpi-yellow::before { background: var(--neon-yellow); }
+
+.kpi-value {
+  font-family: var(--font-display);
+  font-size: 1.8rem;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.kpi-label {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Tabla de resultados */
+.admin-table-wrap {
+  width: 100%;
+  max-width: 900px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.admin-table-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  background: rgba(255,255,255,0.02);
+}
+
+.admin-table-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.export-btns {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.btn-export {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: var(--transition);
+  font-family: var(--font-body);
+  letter-spacing: 0.3px;
+}
+
+.btn-export-csv {
+  background: rgba(52,211,153,0.15);
+  border: 1px solid rgba(52,211,153,0.3);
+  color: var(--neon-green);
+}
+
+.btn-export-csv:hover {
+  background: rgba(52,211,153,0.25);
+  transform: translateY(-1px);
+}
+
+.btn-export-json {
+  background: rgba(79,195,247,0.12);
+  border: 1px solid rgba(79,195,247,0.3);
+  color: var(--neon-blue);
+}
+
+.btn-export-json:hover {
+  background: rgba(79,195,247,0.22);
+  transform: translateY(-1px);
+}
+
+.btn-export-clear {
+  background: rgba(244,114,182,0.1);
+  border: 1px solid rgba(244,114,182,0.25);
+  color: var(--neon-pink);
+}
+
+.btn-export-clear:hover {
+  background: rgba(244,114,182,0.2);
+  transform: translateY(-1px);
+}
+
+/* Filtro y búsqueda */
+.admin-filter-bar {
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.admin-search {
+  flex: 1;
+  min-width: 160px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 0.85rem;
+  color: var(--text-main);
+  outline: none;
+  font-family: var(--font-body);
+  transition: var(--transition);
+}
+
+.admin-search:focus {
+  border-color: var(--neon-purple);
+  background: rgba(124,58,237,0.05);
+}
+
+.admin-search::placeholder { color: var(--text-muted); }
+
+.filter-select {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 0.82rem;
+  color: var(--text-main);
+  outline: none;
+  font-family: var(--font-body);
+  cursor: pointer;
+}
+
+.filter-select option { background: var(--bg-card2); }
+
+/* Tabla principal */
+.admin-table-scroll {
+  overflow-x: auto;
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.admin-table-scroll::-webkit-scrollbar { width: 4px; height: 4px; }
+.admin-table-scroll::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 2px; }
+
+table.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.83rem;
+}
+
+table.data-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+table.data-table th {
+  padding: 12px 14px;
+  text-align: left;
+  background: rgba(13,11,30,0.98);
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.2s;
+}
+
+table.data-table th:hover { color: var(--neon-purple); }
+table.data-table th.sort-asc::after  { content: ' ▲'; color: var(--neon-purple); }
+table.data-table th.sort-desc::after { content: ' ▼'; color: var(--neon-purple); }
+
+table.data-table td {
+  padding: 11px 14px;
+  border-bottom: 1px solid rgba(100,80,255,0.1);
+  color: var(--text-main);
+  white-space: nowrap;
+}
+
+table.data-table tbody tr:hover { background: rgba(255,255,255,0.03); }
+table.data-table tbody tr:last-child td { border-bottom: none; }
+
+.td-rank    { font-family: var(--font-display); font-weight: 700; }
+.td-name    { font-weight: 600; max-width: 160px; overflow: hidden; text-overflow: ellipsis; }
+.td-score   { font-family: var(--font-display); font-weight: 700; color: var(--neon-yellow); }
+.td-pct     { font-weight: 600; }
+.td-mode    { }
+.td-badges  { font-size: 1rem; letter-spacing: 2px; }
+.td-date    { color: var(--text-muted); font-size: 0.78rem; }
+
+.pct-bar-cell { min-width: 100px; }
+.pct-bar-wrap { background: rgba(255,255,255,0.07); border-radius: 4px; height: 6px; overflow: hidden; }
+.pct-bar-fill { height: 100%; border-radius: 4px; }
+
+/* Toast notificación */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  background: var(--bg-card2);
+  border: 1px solid var(--border-bright);
+  border-radius: 100px;
+  padding: 12px 24px;
+  font-size: 0.88rem;
+  color: var(--text-main);
+  z-index: 200;
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  white-space: nowrap;
+  box-shadow: var(--shadow-card);
+}
+
+.toast.show { transform: translateX(-50%) translateY(0); }
+
+/* Resumen por dificultad */
+.diff-summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--border);
+  background: rgba(255,255,255,0.01);
+}
+
+@media (max-width: 600px) { .diff-summary { grid-template-columns: repeat(2, 1fr); } }
+
+.diff-sum-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+}
+
+.diff-sum-bar {
+  flex: 1;
+  height: 4px;
+  background: rgba(255,255,255,0.07);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.diff-sum-fill { height: 100%; border-radius: 2px; }
+
+/* Admin footer info */
+.admin-footer-note {
+  width: 100%;
+  max-width: 900px;
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  padding: 8px;
+}
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     PARTÍCULAS MATEMÁTICAS (generadas por JS)
+     ============================================================ -->
+<div id="particles-container"></div>
+
+<!-- BONUS POPUP -->
+<div class="bonus-popup" id="bonusPopup">🔥 BONUS!</div>
+
+<!-- TOAST NOTIFICACIÓN -->
+<div class="toast" id="toast"></div>
+
+<!-- BOTÓN ADMIN OCULTO (esquina inferior derecha) -->
+<button class="admin-trigger" id="adminTrigger" title="Acceso administrador" onclick="showAdminLogin()">⚙</button>
+
+<!-- ============================================================
+     PANTALLA ADMIN: LOGIN
+     ============================================================ -->
+<div class="screen" id="screen-admin-login">
+  <div class="card admin-login-card animate-in">
+    <span class="admin-icon">🔐</span>
+    <div class="admin-badge">⚙ Panel Profesor</div>
+    <h2 class="gradient-text mb-8">Acceso Administrador</h2>
+    <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:4px">Ingresa el PIN de 6 dígitos del profesor</p>
+
+    <!-- Puntos PIN -->
+    <div class="pin-display" id="pinDisplay">
+      <div class="pin-dot" id="pd0"></div>
+      <div class="pin-dot" id="pd1"></div>
+      <div class="pin-dot" id="pd2"></div>
+      <div class="pin-dot" id="pd3"></div>
+      <div class="pin-dot" id="pd4"></div>
+      <div class="pin-dot" id="pd5"></div>
+    </div>
+
+    <p class="pin-error" id="pinError"></p>
+
+    <!-- Teclado numérico -->
+    <div class="numpad" id="numpad">
+      <button class="numpad-btn" onclick="pinPress('1')">1</button>
+      <button class="numpad-btn" onclick="pinPress('2')">2</button>
+      <button class="numpad-btn" onclick="pinPress('3')">3</button>
+      <button class="numpad-btn" onclick="pinPress('4')">4</button>
+      <button class="numpad-btn" onclick="pinPress('5')">5</button>
+      <button class="numpad-btn" onclick="pinPress('6')">6</button>
+      <button class="numpad-btn" onclick="pinPress('7')">7</button>
+      <button class="numpad-btn" onclick="pinPress('8')">8</button>
+      <button class="numpad-btn" onclick="pinPress('9')">9</button>
+      <button class="numpad-btn del" onclick="pinDel()">⌫</button>
+      <button class="numpad-btn" onclick="pinPress('0')">0</button>
+      <button class="numpad-btn enter" onclick="pinEnter()">✓</button>
+    </div>
+
+    <p style="font-size:0.72rem;color:var(--text-dim);margin-bottom:16px">
+      PIN por defecto: <strong style="color:var(--text-muted);letter-spacing:3px">123456</strong><br>
+      Puedes cambiarlo en la variable <code style="color:var(--neon-purple)">ADMIN_PIN</code> del código
+    </p>
+
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="showScreen('screen-welcome')">← Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     PANTALLA ADMIN: PANEL PRINCIPAL
+     ============================================================ -->
+<div class="screen" id="screen-admin">
+
+  <!-- Header admin -->
+  <div class="admin-header">
+    <div class="admin-title">
+      <div style="width:38px;height:38px;background:rgba(251,191,36,0.15);border:2px solid rgba(251,191,36,0.4);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;">⚙️</div>
+      <div>
+        <h2 class="gradient-text" style="font-size:1.1rem">Panel del Profesor</h2>
+        <div style="font-size:0.72rem;color:var(--text-muted)">DiffEQ Quest — Control de resultados</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn btn-secondary" style="padding:8px 16px;font-size:0.8rem" onclick="adminLogout()">🚪 Salir</button>
+      <button class="btn btn-primary" style="padding:8px 16px;font-size:0.8rem" onclick="adminRefresh()">🔄 Actualizar</button>
+    </div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpi-grid" id="adminKpis"></div>
+
+  <!-- Tabla de resultados -->
+  <div class="admin-table-wrap">
+    <!-- Header tabla -->
+    <div class="admin-table-header">
+      <div class="admin-table-title">
+        📋 Registro completo de jugadores
+        <span id="adminPlayerCount" style="background:rgba(124,58,237,0.2);border:1px solid rgba(124,58,237,0.3);border-radius:100px;padding:2px 10px;font-size:0.72rem;color:var(--neon-purple);font-weight:700">0</span>
+      </div>
+      <div class="export-btns">
+        <button class="btn-export btn-export-csv" onclick="exportCSV()">⬇ CSV</button>
+        <button class="btn-export btn-export-json" onclick="exportJSON()">⬇ JSON</button>
+        <button class="btn-export btn-export-clear" onclick="adminClearAll()">🗑 Limpiar</button>
+      </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="admin-filter-bar">
+      <input class="admin-search" type="text" id="adminSearch" placeholder="🔍 Buscar jugador..." oninput="adminFilter()">
+      <select class="filter-select" id="filterMode" onchange="adminFilter()">
+        <option value="">Todos los modos</option>
+        <option value="normal">🎯 Normal</option>
+        <option value="survival">💀 Supervivencia</option>
+      </select>
+      <select class="filter-select" id="filterSort" onchange="adminFilter()">
+        <option value="score-desc">Puntaje ↓</option>
+        <option value="score-asc">Puntaje ↑</option>
+        <option value="name-asc">Nombre A-Z</option>
+        <option value="correct-desc">Correctas ↓</option>
+        <option value="date-desc">Fecha ↓</option>
+      </select>
+    </div>
+
+    <!-- Tabla datos -->
+    <div class="admin-table-scroll">
+      <table class="data-table" id="adminTable">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Jugador</th>
+            <th>Puntaje</th>
+            <th>Correctas</th>
+            <th>Precisión</th>
+            <th>Racha</th>
+            <th>Modo</th>
+            <th>Insignias</th>
+            <th>Duración</th>
+            <th>Fecha y hora</th>
+          </tr>
+        </thead>
+        <tbody id="adminTableBody"></tbody>
+      </table>
+    </div>
+
+    <!-- Resumen por dificultad -->
+    <div class="diff-summary" id="adminDiffSummary"></div>
+  </div>
+
+  <div class="admin-footer-note" id="adminFooterNote">
+    Los datos se almacenan en LocalStorage del navegador. Usa el botón CSV para guardar una copia externa.
+  </div>
+</div>
+
+<!-- ============================================================
+     PANTALLA 1: BIENVENIDA
+     ============================================================ -->
+<div class="screen active" id="screen-welcome">
+  <div class="welcome-logo gradient-text">∂ƒ</div>
+  <div class="welcome-subtitle">DiffEQ Quest — Ecuaciones Diferenciales</div>
+
+  <div class="card welcome-card animate-in">
+    <h2 class="gradient-text text-center mb-8">Bienvenido al campo de batalla</h2>
+    <p style="color:var(--text-muted);text-align:center;font-size:0.9rem;margin-bottom:16px;line-height:1.6;">
+      Demuestra tu dominio sobre las ecuaciones diferenciales en esta trivia competitiva. Responde preguntas, acumula puntos y sube al podio.
+    </p>
+
+    <div class="welcome-tags">
+      <span class="tag">EDO Lineales</span>
+      <span class="tag">Wronskiano</span>
+      <span class="tag">Operador Anulador</span>
+      <span class="tag">Variación de Parámetros</span>
+      <span class="tag">Ec. Característica</span>
+      <span class="tag">Coef. Indeterminados</span>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="showLogin()">⚡ Comenzar</button>
+      <button class="btn btn-secondary" onclick="showRankingGlobal()">🏆 Ranking</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     PANTALLA 2: LOGIN
+     ============================================================ -->
+<div class="screen" id="screen-login">
+  <div class="card animate-in" style="max-width:520px">
+    <h2 class="gradient-text mb-16">👤 Registro del estudiante</h2>
+
+    <div class="form-group">
+      <label>Nombre completo</label>
+      <input type="text" id="inputName" placeholder="Ej: Juan Pérez" maxlength="30">
+    </div>
+
+    <div class="form-group">
+      <label>Modalidad</label>
+      <select id="selectMode">
+        <option value="normal">🎯 Normal (20 preguntas)</option>
+        <option value="survival">💀 Supervivencia (3 vidas)</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>Elige tu avatar</label>
+      <div class="avatar-grid" id="avatarGrid"></div>
+    </div>
+
+    <div id="already-played-msg" class="played-notice" style="display:none">
+      ⚠️ Ya jugaste anteriormente. Solo se permite una partida por estudiante.<br>
+      <button class="btn btn-secondary" style="margin-top:10px;padding:8px 20px;font-size:0.8rem" onclick="showRankingGlobal()">Ver mi resultado</button>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="showScreen('screen-welcome')">← Volver</button>
+      <button class="btn btn-primary" id="btnLogin" onclick="doLogin()">Continuar →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     PANTALLA 3: INSTRUCCIONES
+     ============================================================ -->
+<div class="screen" id="screen-instructions">
+  <div class="scrollable">
+    <div class="card animate-in">
+      <h2 class="gradient-text mb-16">📋 Instrucciones</h2>
+
+      <div class="instructions-grid">
+        <div class="instr-item">
+          <span class="instr-icon">⏱️</span>
+          <div>
+            <div class="instr-title">Temporizador</div>
+            <div class="instr-desc">30 segundos por pregunta. Responder más rápido da puntos bonus.</div>
+          </div>
+        </div>
+        <div class="instr-item">
+          <span class="instr-icon">🎯</span>
+          <div>
+            <div class="instr-title">Preguntas</div>
+            <div class="instr-desc">20 preguntas aleatorias sin repetición del banco de 100.</div>
+          </div>
+        </div>
+        <div class="instr-item">
+          <span class="instr-icon">📊</span>
+          <div>
+            <div class="instr-title">Dificultades</div>
+            <div class="instr-desc">Fácil, Media, Difícil y Experto con distinto valor de puntos.</div>
+          </div>
+        </div>
+        <div class="instr-item">
+          <span class="instr-icon">🔥</span>
+          <div>
+            <div class="instr-title">Rachas</div>
+            <div class="instr-desc">3 correctas consecutivas = +100 bonus. ¡Mantén la racha!</div>
+          </div>
+        </div>
+        <div class="instr-item">
+          <span class="instr-icon">⚡</span>
+          <div>
+            <div class="instr-title">Respuesta Rápida</div>
+            <div class="instr-desc">Si respondes en los primeros 10 s = +50 puntos extra.</div>
+          </div>
+        </div>
+        <div class="instr-item">
+          <span class="instr-icon">💀</span>
+          <div>
+            <div class="instr-title">Supervivencia</div>
+            <div class="instr-desc">Solo 3 vidas. Un error y pierdes una. ¡Sin margen!</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+      <p class="section-title">Sistema de puntos</p>
+
+      <table class="points-table">
+        <thead>
+          <tr>
+            <th>Dificultad</th>
+            <th>Puntos base</th>
+            <th>Bonus rapidez</th>
+            <th>Racha ×3</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="diff-badge diff-easy">Fácil</span></td>
+            <td>100</td>
+            <td>+50</td>
+            <td>+100</td>
+          </tr>
+          <tr>
+            <td><span class="diff-badge diff-media">Media</span></td>
+            <td>200</td>
+            <td>+50</td>
+            <td>+100</td>
+          </tr>
+          <tr>
+            <td><span class="diff-badge diff-dificil">Difícil</span></td>
+            <td>350</td>
+            <td>+50</td>
+            <td>+100</td>
+          </tr>
+          <tr>
+            <td><span class="diff-badge diff-experto">Experto</span></td>
+            <td>500</td>
+            <td>+50</td>
+            <td>+100</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="showLogin()">← Volver</button>
+        <button class="btn btn-primary" onclick="startGame()">🚀 Iniciar juego</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     PANTALLA 4: JUEGO
+     ============================================================ -->
+<div class="screen" id="screen-game">
+
+  <!-- Header -->
+  <div class="game-header">
+    <div class="player-info">
+      <div class="player-avatar" id="gameAvatar"></div>
+      <div>
+        <div class="player-name" id="gameName"></div>
+        <div class="player-score-label">Puntaje actual</div>
+      </div>
+    </div>
+    <div class="score-display">
+      <div class="score-value" id="scoreDisplay">0</div>
+      <div class="player-score-label" style="text-align:right">puntos</div>
+    </div>
+  </div>
+
+  <!-- Progreso -->
+  <div class="progress-section">
+    <div class="progress-meta">
+      <span id="qProgress">Pregunta 1 de 20</span>
+      <span id="qDiff" class="diff-badge diff-easy">Fácil</span>
+    </div>
+    <div class="progress-bar-wrap">
+      <div class="progress-bar-fill" id="progressBar" style="width:0%"></div>
+    </div>
+  </div>
+
+  <!-- Vidas y racha -->
+  <div class="game-stats">
+    <div class="lives-display" id="livesDisplay"></div>
+    <div class="streak-display">
+      🔥 Racha: <span class="streak-count" id="streakCount">0</span>
+    </div>
+  </div>
+
+  <!-- Temporizador -->
+  <div class="timer-section">
+    <div class="timer-circle">
+      <svg class="timer-svg" width="58" height="58" viewBox="0 0 58 58">
+        <circle class="timer-bg"   cx="29" cy="29" r="26"/>
+        <circle class="timer-ring" cx="29" cy="29" r="26" id="timerRing"/>
+      </svg>
+      <div class="timer-number" id="timerNumber">30</div>
+    </div>
+    <div class="timer-bar-wrap">
+      <div class="timer-bar-fill" id="timerBar" style="width:100%;background:var(--neon-blue)"></div>
+    </div>
+  </div>
+
+  <!-- Tarjeta pregunta -->
+  <div class="card question-card" id="questionCard">
+    <div class="question-meta">
+      <span class="q-number" id="qNumberLabel">Pregunta 1</span>
+      <span id="qPointsLabel" style="font-size:0.82rem;color:var(--neon-yellow);font-family:var(--font-display)">+100 pts</span>
+    </div>
+    <div class="question-text" id="questionText"></div>
+    <div class="options-grid" id="optionsGrid"></div>
+  </div>
+
+  <!-- Feedback -->
+  <div class="feedback-bar" id="feedbackBar">
+    <span class="feedback-icon" id="feedbackIcon"></span>
+    <div class="feedback-text">
+      <div class="feedback-title" id="feedbackTitle"></div>
+      <div class="feedback-desc"  id="feedbackDesc"></div>
+    </div>
+    <span class="feedback-points" id="feedbackPoints"></span>
+  </div>
+
+</div>
+
+<!-- ============================================================
+     PANTALLA 5: RESULTADOS
+     ============================================================ -->
+<div class="screen" id="screen-results">
+  <div class="scrollable">
+    <div class="card animate-in">
+      <div class="result-hero">
+        <div class="result-avatar" id="resultAvatar"></div>
+        <div id="resultName" style="font-weight:700;font-size:1.1rem;margin-bottom:8px"></div>
+        <div class="final-score" id="finalScore">0</div>
+        <div class="final-score-label">puntos totales</div>
+        <div id="performanceMsg" style="margin-top:12px;font-size:0.9rem;color:var(--neon-purple)"></div>
+      </div>
+
+      <div class="result-stats" id="resultStats"></div>
+
+      <div class="divider"></div>
+
+      <div class="badges-section">
+        <p class="badges-title">🏅 Insignias obtenidas</p>
+        <div class="badges-grid" id="badgesGrid"></div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="showRankingGlobal()">🏆 Ver Ranking</button>
+        <button class="btn btn-primary"   onclick="restartGame()">🔄 Nuevo intento</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     PANTALLA 6: RANKING GLOBAL
+     ============================================================ -->
+<div class="screen" id="screen-ranking">
+  <div class="scrollable">
+    <div class="card animate-in" style="max-width:620px">
+      <div class="ranking-header">
+        <h2 class="gradient-text">🏆 Tabla de Honor</h2>
+        <p style="color:var(--text-muted);font-size:0.85rem;margin-top:6px">Mejores puntajes históricos</p>
+      </div>
+
+      <div class="ranking-podium" id="rankingPodium"></div>
+
+      <div class="divider"></div>
+
+      <ul class="ranking-list" id="rankingList"></ul>
+
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="showScreen('screen-welcome')">← Inicio</button>
+        <button class="btn btn-danger" onclick="clearRanking()" style="padding:10px 18px;font-size:0.8rem">🗑 Limpiar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     JAVASCRIPT PRINCIPAL
+     ============================================================ -->
+<script>
+/* ============================================================
+   BANCO DE 100 PREGUNTAS CLASIFICADAS POR DIFICULTAD
+   ============================================================ */
+const BANCO = [
+  // ─── FÁCIL (25 preguntas, 100 pts cada una) ───────────────
+  {
+    pregunta: "¿Qué tipo de ecuación diferencial es: y'' + 4y' + 4y = 0?",
+    opciones: ["Lineal homogénea de segundo orden","Lineal no homogénea","No lineal","Bernoulli"],
+    respuesta_correcta: "Lineal homogénea de segundo orden",
+    dificultad: "facil", puntos: 100
+  },
+  {
+    pregunta: "La ecuación característica de y'' - y = 0 tiene raíces:",
+    opciones: ["r = ±1","r = ±i","r = 0, 1","r = 2, -2"],
+    respuesta_correcta: "r = ±1",
+    dificultad: "facil", puntos: 100
+  },
+  {
+    pregunta: "Si las raíces de la ecuación característica son complejas r = α ± βi, la solución general incluye:",
+    opciones: ["eᵅˣ(C₁cos(βx) + C₂sin(βx))","C₁eʳˣ + C₂eʳˣ","C₁cos(x) + C₂sin(x)","C₁eˣ + C₂xe^x"],
+    respuesta_correcta: "eᵅˣ(C₁cos(βx) + C₂sin(βx))",
+    dificultad: "facil", puntos: 100
+  },
+  {
+    pregunta: "¿Cuál es la solución complementaria de y'' + y = 0?",
+    opciones: ["C₁cos(x) + C₂sin(x)","C₁eˣ + C₂e⁻ˣ","C₁ + C₂x","C₁eˣcos(x)"],
+    respuesta_correcta: "C₁cos(x) + C₂sin(x)",
+    dificultad: "facil", puntos: 100
+  },
+  {
+    pregunta: "El operador diferencial D se define como:",
+    opciones: ["D = d/dx","D = ∫ dx","D = d²/dx²","D = x·d/dx"],
+    respuesta_correcta: "D = d/dx",
+    dificultad: "facil", puntos: 100
+  },
+  {
+    pregunta: "Para la EDO y'' - 5y' + 6y = 0, la ecuación característica es:",
+    opciones: ["r² - 5r + 6 = 0","r² + 5r + 6 = 0","r² - 5r - 6 = 0","r² + 6 = 0"],
+    respuesta_correcta: "r² - 5r + 6 = 0",
+    dificultad: "facil", puntos: 100
+  },
+  {
+    pregunta: "¿Cuántas constantes arbitrarias tiene la solución general de una EDO de orden 3?",
+    opciones: ["3","1","2","4"],
+    respuesta_correcta: "3",
+    dificultad: "facil", puntos: 100
+  },
+  {
+    pregunta: "La solución general de una EDO lineal no homogénea es:",
+    opciones: ["yₕ + yₚ","yₕ · yₚ","yₚ - yₕ","yₕ / yₚ"],
+    respuesta_correcta: "yₕ + yₚ",
+    dificultad: "facil", puntos: 100
+  },
+  {
+    pregunta: "¿Cuál es el orden de la EDO: y''' - 3y' + y = eˣ?",
+    opciones: ["3","1","2","4"],
+    respuesta_correcta: "3",
+    dificultad: "facil", puntos: 100
+  },
+  {
+    pregunta: "Si r₁ = r₂ = r son raíces iguales de la ec. característica, la solución es:",
+    opciones: ["(C₁ + C₂x)eʳˣ","C₁eʳˣ + C₂eʳˣ","C₁eʳˣcos(x)","C₁sin(rx) + C₂cos(rx)"],
+    respuesta_correcta: "(C₁ + C₂x)eʳˣ",
+    dificultad: "facil", puntos: 100
+  },
+  {
+    pregunta: "La EDO y'' + 9y = 0 tiene solución general:",
+    opciones: ["C₁cos(3x) + C₂sin(3x)","C₁e³ˣ + C₂e⁻³ˣ","C₁ + C₂x","(C₁+C₂x)e³ˣ"],
+    respuesta_correcta: "C₁cos(3x) + C₂sin(3x)",
+    dificultad: "facil", puntos: 100
+  },
+  {
+    pregunta: "¿El Wronskiano W(y₁,y₂) = 0 para todo x implica?",
+    opciones: ["Las funciones son linealmente dependientes","Las funciones son linealmente independientes","La EDO no tiene solución","El operador es nulo"],
+    respuesta_correcta: "Las funciones son linealmente dependientes",
+    dificultad: "facil", puntos: 100
+  },
+  {
+    pregunta: "El operador D² actúa sobre f(x) como:",
+    opciones: ["f''(x)","f'(x)","∫f dx","xf(x)"],
+    respuesta_correcta: "f''(x)",
+    dificultad: "facil", puntos: 100
+  },
+  {
+    pregunta: "En el método de coeficientes indeterminados, si g(x) = 5, la forma de yₚ es:",
+    opciones: ["A (constante)","Ax + B","Aex","Asin(x)"],
+    respuesta_correcta: "A (constante)",
+    dificultad: "facil", puntos: 100
+  },
+  {
+    pregunta: "La EDO y' = f(x) se resuelve por:",
+    opciones: ["Integración directa","Separación de variables","Método de Frobenius","Wronskiano"],
+    respuesta_correcta: "Integración directa",
+    dificultad: "facil", puntos: 100
+  },
+  {
+    pregunta: "¿Cuál es la ecuación característica de y'' + 4y' + 4y = 0?",
+    opciones: ["(r+2)² = 0","r² + 4 = 0","r² - 4 = 0","(r-2)² = 0"],
+    respuesta_correcta: "(r+2)² = 0",
+    dificultad: "facil", puntos: 100
+  },
+  {
+    pregunta: "Si g(x) = 3eˣ, la suposición inicial para yₚ en coef. indeterminados es:",
+    opciones: ["Aeˣ","Axeˣ","Ae²ˣ","A + Beˣ"],
+    respuesta_correcta: "Aeˣ",
+    dificultad: "facil", puntos: 100
+  },
+  {
+    pregunta: "La solución general de y'' + 6y' + 9y = 0 es:",
+    opciones: ["(C₁+C₂x)e⁻³ˣ","C₁e³ˣ+C₂e⁻³ˣ","C₁cos(3x)+C₂sin(3x)","C₁e⁻³ˣ"],
+    respuesta_correcta: "(C₁+C₂x)e⁻³ˣ",
+    dificultad: "facil", puntos: 100
+  },
+  {
+    pregunta: "¿Qué indica el grado de una EDO?",
+    opciones: ["La potencia de la derivada de mayor orden","El orden de la derivada más alta","El número de soluciones","El tipo de coeficientes"],
+    respuesta_correcta: "La potencia de la derivada de mayor orden",
+    dificultad: "facil", puntos: 100
+  },
+  {
+    pregunta: "La EDO y'' - 4y = 0 tiene raíces características:",
+    opciones: ["r = ±2","r = ±2i","r = 0, 4","r = 2 ± i"],
+    respuesta_correcta: "r = ±2",
+    dificultad: "facil", puntos: 100
+  },
+  {
+    pregunta: "En notación de operadores, D³y significa:",
+    opciones: ["y'''","y''","y'","∫∫∫y dx³"],
+    respuesta_correcta: "y'''",
+    dificultad: "facil", puntos: 100
+  },
+  {
+    pregunta: "¿Cuántas soluciones linealmente independientes tiene una EDO lineal de orden n?",
+    opciones: ["n","n-1","n+1","2n"],
+    respuesta_correcta: "n",
+    dificultad: "facil", puntos: 100
+  },
+  {
+    pregunta: "La solución de y' + 2y = 0 es:",
+    opciones: ["Ce⁻²ˣ","Ce²ˣ","C cos(2x)","Cx"],
+    respuesta_correcta: "Ce⁻²ˣ",
+    dificultad: "facil", puntos: 100
+  },
+  {
+    pregunta: "En y'' - 3y' + 2y = 0, las raíces de la ec. característica son:",
+    opciones: ["r = 1, 2","r = -1, -2","r = ±√2","r = 3 ± i"],
+    respuesta_correcta: "r = 1, 2",
+    dificultad: "facil", puntos: 100
+  },
+  {
+    pregunta: "Si yₚ es una solución particular y yₕ la complementaria, la solución general es:",
+    opciones: ["y = yₕ + yₚ","y = yₕ - yₚ","y = yₕ · yₚ","y = yₚ"],
+    respuesta_correcta: "y = yₕ + yₚ",
+    dificultad: "facil", puntos: 100
+  },
+
+  // ─── MEDIA (25 preguntas, 200 pts cada una) ───────────────
+  {
+    pregunta: "El Wronskiano de y₁ = eˣ e y₂ = e⁻ˣ es:",
+    opciones: ["-2","2","0","eˣ"],
+    respuesta_correcta: "-2",
+    dificultad: "media", puntos: 200
+  },
+  {
+    pregunta: "¿Cuál es el operador anulador de f(x) = x²?",
+    opciones: ["D³","D²","D","D⁴"],
+    respuesta_correcta: "D³",
+    dificultad: "media", puntos: 200
+  },
+  {
+    pregunta: "El operador anulador de eˣ es:",
+    opciones: ["D - 1","D + 1","D²","D² - 1"],
+    respuesta_correcta: "D - 1",
+    dificultad: "media", puntos: 200
+  },
+  {
+    pregunta: "Para la EDO y'' - y = eˣ, la forma correcta de yₚ (por coef. indeterminados) es:",
+    opciones: ["Axeˣ","Aeˣ","Ae⁻ˣ","Ax²eˣ"],
+    respuesta_correcta: "Axeˣ",
+    dificultad: "media", puntos: 200
+  },
+  {
+    pregunta: "El Wronskiano W(cos x, sin x) es igual a:",
+    opciones: ["1","0","-1","cos²x + sin²x"],
+    respuesta_correcta: "1",
+    dificultad: "media", puntos: 200
+  },
+  {
+    pregunta: "El operador anulador de sin(2x) es:",
+    opciones: ["D² + 4","D² - 4","D + 2i","(D-2)(D+2)"],
+    respuesta_correcta: "D² + 4",
+    dificultad: "media", puntos: 200
+  },
+  {
+    pregunta: "En el método de reducción de orden, si y₁ es solución conocida, se propone y₂ = :",
+    opciones: ["v(x)·y₁(x)","v(x)/y₁(x)","y₁(x) + v(x)","y₁²(x)"],
+    respuesta_correcta: "v(x)·y₁(x)",
+    dificultad: "media", puntos: 200
+  },
+  {
+    pregunta: "Para y'' + y = cos(x), la forma de yₚ (por coef. indeterminados) debe ser:",
+    opciones: ["x(Acos(x) + Bsin(x))","Acos(x) + Bsin(x)","Axcos(x)","Ax²cos(x)"],
+    respuesta_correcta: "x(Acos(x) + Bsin(x))",
+    dificultad: "media", puntos: 200
+  },
+  {
+    pregunta: "El operador anulador de xeˣ es:",
+    opciones: ["(D-1)²","D-1","(D+1)²","D²-1"],
+    respuesta_correcta: "(D-1)²",
+    dificultad: "media", puntos: 200
+  },
+  {
+    pregunta: "El Wronskiano W(eˣ, xeˣ) es:",
+    opciones: ["e²ˣ","eˣ","2e²ˣ","xe²ˣ"],
+    respuesta_correcta: "e²ˣ",
+    dificultad: "media", puntos: 200
+  },
+  {
+    pregunta: "¿Qué método se usa si g(x) = sec(x)?",
+    opciones: ["Variación de parámetros","Coeficientes indeterminados","Operador anulador","Ecuación característica"],
+    respuesta_correcta: "Variación de parámetros",
+    dificultad: "media", puntos: 200
+  },
+  {
+    pregunta: "La fórmula de variación de parámetros para u₁' en y'' + p(x)y' + q(x)y = g(x) es:",
+    opciones: ["u₁' = -y₂g/W","u₁' = y₁g/W","u₁' = y₂g/W","u₁' = -y₁g/W"],
+    respuesta_correcta: "u₁' = -y₂g/W",
+    dificultad: "media", puntos: 200
+  },
+  {
+    pregunta: "El operador anulador de e²ˣcos(3x) es:",
+    opciones: ["(D-2)² + 9","(D-2)² - 9","D² + 9","(D+2)² + 9"],
+    respuesta_correcta: "(D-2)² + 9",
+    dificultad: "media", puntos: 200
+  },
+  {
+    pregunta: "Si la ec. característica tiene raíces r = 0, 0, entonces la parte de yₕ correspondiente es:",
+    opciones: ["C₁ + C₂x","C₁x + C₂x²","C₁ + C₂e⁰ˣ","C₁x²"],
+    respuesta_correcta: "C₁ + C₂x",
+    dificultad: "media", puntos: 200
+  },
+  {
+    pregunta: "Para y'' + 4y = 8x², la solución particular por coef. indeterminados es:",
+    opciones: ["2x² - 1","x² + 1","2x²","x² - 2"],
+    respuesta_correcta: "2x² - 1",
+    dificultad: "media", puntos: 200
+  },
+  {
+    pregunta: "El principio de superposición dice que si y₁ es solución de L[y]=g₁ e y₂ de L[y]=g₂, entonces:",
+    opciones: ["y₁+y₂ es solución de L[y]=g₁+g₂","y₁·y₂ es solución de L[y]=g₁g₂","Solo y₁ es solución total","y₁-y₂ es solución de L[y]=0"],
+    respuesta_correcta: "y₁+y₂ es solución de L[y]=g₁+g₂",
+    dificultad: "media", puntos: 200
+  },
+  {
+    pregunta: "El operador anulador de 5 (constante) es:",
+    opciones: ["D","D²","D-1","D+1"],
+    respuesta_correcta: "D",
+    dificultad: "media", puntos: 200
+  },
+  {
+    pregunta: "Para reducción de orden, la sustitución w = v' transforma la ecuación en:",
+    opciones: ["Una EDO de primer orden en w","Una EDO de tercer orden","Una ecuación algebraica","Una EDO de Bernoulli"],
+    respuesta_correcta: "Una EDO de primer orden en w",
+    dificultad: "media", puntos: 200
+  },
+  {
+    pregunta: "Si W(y₁,y₂) ≠ 0 en un intervalo I, entonces y₁ e y₂ son:",
+    opciones: ["Linealmente independientes en I","Linealmente dependientes","Soluciones triviales","Soluciones particulares"],
+    respuesta_correcta: "Linealmente independientes en I",
+    dificultad: "media", puntos: 200
+  },
+  {
+    pregunta: "La solución particular de y'' - 2y' + y = eˣ por coef. indeterminados es:",
+    opciones: ["x²eˣ/2","xeˣ","x²eˣ","eˣ/2"],
+    respuesta_correcta: "x²eˣ/2",
+    dificultad: "media", puntos: 200
+  },
+  {
+    pregunta: "El operador L = D² + D + 1 aplicado a y = eˣ da:",
+    opciones: ["3eˣ","eˣ","2eˣ","0"],
+    respuesta_correcta: "3eˣ",
+    dificultad: "media", puntos: 200
+  },
+  {
+    pregunta: "¿Cuál es la forma de yₚ para y'' - 4y = 3x + 1?",
+    opciones: ["Ax + B","Ax² + Bx + C","Aeˣ + B","A cos(x) + B sin(x)"],
+    respuesta_correcta: "Ax + B",
+    dificultad: "media", puntos: 200
+  },
+  {
+    pregunta: "El operador anulador de x³ es:",
+    opciones: ["D⁴","D³","D²","D⁵"],
+    respuesta_correcta: "D⁴",
+    dificultad: "media", puntos: 200
+  },
+  {
+    pregunta: "La identidad operatorial (D - a)eᵃˣf(x) = eᵃˣDf(x) se llama:",
+    opciones: ["Teorema de traslación exponencial","Principio de superposición","Teorema de Abel","Lema de Wronskiano"],
+    respuesta_correcta: "Teorema de traslación exponencial",
+    dificultad: "media", puntos: 200
+  },
+  {
+    pregunta: "Para y'' + y = tan(x), la técnica indicada es variación de parámetros porque:",
+    opciones: ["tan(x) no tiene operador anulador con coef. constantes","Es una EDO de orden 1","La homogénea no tiene solución","El Wronskiano es 0"],
+    respuesta_correcta: "tan(x) no tiene operador anulador con coef. constantes",
+    dificultad: "media", puntos: 200
+  },
+  {
+    pregunta: "Si p(r) = r³ - r es el polinomio característico, las raíces son:",
+    opciones: ["r = 0, 1, -1","r = 0, 0, 1","r = ±1, ±i","r = 1, 2, 3"],
+    respuesta_correcta: "r = 0, 1, -1",
+    dificultad: "media", puntos: 200
+  },
+
+  // ─── DIFÍCIL (25 preguntas, 350 pts cada una) ─────────────
+  {
+    pregunta: "Usa variación de parámetros para y'' + y = csc(x). La integral u₁ = ∫(-csc(x)·cos(x))dx resulta en:",
+    opciones: ["ln|sin(x)|","cos(x)","-ln|csc x + cot x|","sin(x)"],
+    respuesta_correcta: "ln|sin(x)|",
+    dificultad: "dificil", puntos: 350
+  },
+  {
+    pregunta: "La solución particular de y'' + y = sec(x) por variación de parámetros es:",
+    opciones: ["x·sin(x) + cos(x)·ln|cos(x)|","x·cos(x)","sin(x)·ln|sin(x)|","cos(x)·ln|cos(x)|"],
+    respuesta_correcta: "x·sin(x) + cos(x)·ln|cos(x)|",
+    dificultad: "dificil", puntos: 350
+  },
+  {
+    pregunta: "Para reducir el orden de y'' + (y')² = 0, con p = y', se obtiene la EDO:",
+    opciones: ["p' + p² = 0","p' = p","p'' + p = 0","2p' + p = 0"],
+    respuesta_correcta: "p' + p² = 0",
+    dificultad: "dificil", puntos: 350
+  },
+  {
+    pregunta: "El Wronskiano W(eˣ, e²ˣ, e³ˣ) es:",
+    opciones: ["2e⁶ˣ","e⁶ˣ","6e⁶ˣ","0"],
+    respuesta_correcta: "2e⁶ˣ",
+    dificultad: "dificil", puntos: 350
+  },
+  {
+    pregunta: "La EDO y'' - 2y' + y = eˣ/x se resuelve con variación de parámetros. u₁ = ∫(-xeˣ·eˣ/x / e²ˣ)dx =",
+    opciones: ["-x","-eˣ","x","ln x"],
+    respuesta_correcta: "-x",
+    dificultad: "dificil", puntos: 350
+  },
+  {
+    pregunta: "El operador anulador de xeˣsin(x) es:",
+    opciones: ["[(D-1)² + 1]²","(D-1)² + 1","(D² + 1)²","(D-1)⁴"],
+    respuesta_correcta: "[(D-1)² + 1]²",
+    dificultad: "dificil", puntos: 350
+  },
+  {
+    pregunta: "Para la EDO y⁽⁴⁾ - y = 0, las raíces de la ec. característica son:",
+    opciones: ["r = 1, -1, i, -i","r = 1, 1, -1, -1","r = ±1, ±2","r = 0, 1, -1, i"],
+    respuesta_correcta: "r = 1, -1, i, -i",
+    dificultad: "dificil", puntos: 350
+  },
+  {
+    pregunta: "Si y₁ = x es solución de x²y'' - xy' + y = 0, por reducción de orden y₂ es:",
+    opciones: ["x·ln(x)","x²","ln(x)","x·eˣ"],
+    respuesta_correcta: "x·ln(x)",
+    dificultad: "dificil", puntos: 350
+  },
+  {
+    pregunta: "La solución particular de (D² + 1)y = sin²(x) es:",
+    opciones: ["1/2 - (x/4)sin(2x)","x·cos(x)/2","cos(2x)/3","1/2 + sin(2x)/4"],
+    respuesta_correcta: "1/2 - (x/4)sin(2x)",
+    dificultad: "dificil", puntos: 350
+  },
+  {
+    pregunta: "El método del operador inverso 1/f(D) aplicado a eᵃˣ cuando f(a) ≠ 0 da:",
+    opciones: ["eᵃˣ/f(a)","eᵃˣ·f(a)","x·eᵃˣ/f(a)","eᵃˣ/f'(a)"],
+    respuesta_correcta: "eᵃˣ/f(a)",
+    dificultad: "dificil", puntos: 350
+  },
+  {
+    pregunta: "Para la EDO de Euler x²y'' + xy' - y = 0, la sustitución x = eᵗ transforma la ec. en:",
+    opciones: ["ÿ - y = 0 (derivadas en t)","ÿ + y = 0","ÿ + ẏ - y = 0","ÿ - ẏ - y = 0"],
+    respuesta_correcta: "ÿ - y = 0 (derivadas en t)",
+    dificultad: "dificil", puntos: 350
+  },
+  {
+    pregunta: "El teorema de Abel establece que el Wronskiano de n soluciones satisface:",
+    opciones: ["W' + p(x)W = 0","W'' + p(x)W = g(x)","W = constante siempre","W·y = 0"],
+    respuesta_correcta: "W' + p(x)W = 0",
+    dificultad: "dificil", puntos: 350
+  },
+  {
+    pregunta: "La solución particular de y'' - 3y' + 2y = sin(x) por coef. indeterminados es:",
+    opciones: ["(3cos(x) + sin(x))/10","cos(x)/2","sin(x)/10","3sin(x) - cos(x)"],
+    respuesta_correcta: "(3cos(x) + sin(x))/10",
+    dificultad: "dificil", puntos: 350
+  },
+  {
+    pregunta: "El operador anulador de x²e⁻ˣ es:",
+    opciones: ["(D+1)³","(D-1)³","D³","(D+1)²"],
+    respuesta_correcta: "(D+1)³",
+    dificultad: "dificil", puntos: 350
+  },
+  {
+    pregunta: "La fórmula de variación de parámetros para u₂' es:",
+    opciones: ["u₂' = y₁g/W","u₂' = -y₁g/W","u₂' = y₂g/W","u₂' = -y₂g/W"],
+    respuesta_correcta: "u₂' = y₁g/W",
+    dificultad: "dificil", puntos: 350
+  },
+  {
+    pregunta: "Para y⁽⁴⁾ - 16y = 0, la solución general incluye términos de la forma:",
+    opciones: ["C₁e²ˣ+C₂e⁻²ˣ+C₃cos(2x)+C₄sin(2x)","C₁e⁴ˣ+C₂e⁻⁴ˣ","(C₁+C₂x)e²ˣ+(C₃+C₄x)e⁻²ˣ","C₁e²ˣ+C₂xe²ˣ"],
+    respuesta_correcta: "C₁e²ˣ+C₂e⁻²ˣ+C₃cos(2x)+C₄sin(2x)",
+    dificultad: "dificil", puntos: 350
+  },
+  {
+    pregunta: "Si f(D)eᵃˣ = 0 pero f(a) = 0, para encontrar yₚ con operador inverso se usa:",
+    opciones: ["x·eᵃˣ/f'(a)","eᵃˣ/f(a)","x²eᵃˣ/f''(a)","eᵃˣ·f'(a)"],
+    respuesta_correcta: "x·eᵃˣ/f'(a)",
+    dificultad: "dificil", puntos: 350
+  },
+  {
+    pregunta: "La EDO y'' + 4y = 8eˣsin(2x). El operador anulador del lado derecho es:",
+    opciones: ["(D-1)² + 4","D² + 4","(D+1)² + 4","(D-1)² - 4"],
+    respuesta_correcta: "(D-1)² + 4",
+    dificultad: "dificil", puntos: 350
+  },
+  {
+    pregunta: "En el método de reducción de orden para y₁=cos(x) en y'' + y = 0, v(x) se obtiene integrando:",
+    opciones: ["sec²(x)","tan(x)","cos²(x)","1/cos(x)"],
+    respuesta_correcta: "sec²(x)",
+    dificultad: "dificil", puntos: 350
+  },
+  {
+    pregunta: "El Wronskiano W(1, x, x²) es:",
+    opciones: ["2","0","x","x²"],
+    respuesta_correcta: "2",
+    dificultad: "dificil", puntos: 350
+  },
+  {
+    pregunta: "Para y'' + 9y = x·sin(3x), la forma de yₚ por coeficientes indeterminados es:",
+    opciones: ["x(Ax+B)cos(3x) + x(Cx+D)sin(3x)","(Ax+B)cos(3x)+(Cx+D)sin(3x)","x(Acos(3x)+Bsin(3x))","(Ax+B)cos(3x)"],
+    respuesta_correcta: "x(Ax+B)cos(3x) + x(Cx+D)sin(3x)",
+    dificultad: "dificil", puntos: 350
+  },
+  {
+    pregunta: "El polinomio operador de y⁽⁵⁾ - y⁽⁴⁾ + y''' = 0 tiene raíces:",
+    opciones: ["r=0(triple), r=(1±i√3)/2","r=0,0,0,1,1","r=0,0,0,i,-i","r=1,1,1,i,-i"],
+    respuesta_correcta: "r=0(triple), r=(1±i√3)/2",
+    dificultad: "dificil", puntos: 350
+  },
+  {
+    pregunta: "En variación de parámetros para y'' - 2y' + y = eˣ ln x, u₂ se obtiene integrando:",
+    opciones: ["xeˣ·eˣlnx / e²ˣ = x ln x","eˣ ln x","x ln x - x","ln x / eˣ"],
+    respuesta_correcta: "xeˣ·eˣlnx / e²ˣ = x ln x",
+    dificultad: "dificil", puntos: 350
+  },
+  {
+    pregunta: "Para la EDO y'' + y = eˣ + x², el principio de superposición requiere buscar yₚ para:",
+    opciones: ["yₚ₁ (parte eˣ) y yₚ₂ (parte x²) por separado","Solo para g(x) = eˣ","Solo para g(x) = x²","Una sola solución particular combinada"],
+    respuesta_correcta: "yₚ₁ (parte eˣ) y yₚ₂ (parte x²) por separado",
+    dificultad: "dificil", puntos: 350
+  },
+  {
+    pregunta: "La solución general de y''' - 3y'' + 3y' - y = 0 es:",
+    opciones: ["(C₁+C₂x+C₃x²)eˣ","C₁eˣ+C₂e²ˣ+C₃e³ˣ","C₁eˣ+(C₂+C₃x)e⁻ˣ","eˣ(C₁cos x+C₂sin x)"],
+    respuesta_correcta: "(C₁+C₂x+C₃x²)eˣ",
+    dificultad: "dificil", puntos: 350
+  },
+
+  // ─── EXPERTO (25 preguntas, 500 pts cada una) ─────────────
+  {
+    pregunta: "Para la ecuación de Euler-Cauchy x²y'' - 3xy' + 4y = x²ln(x), la solución particular por variación de parámetros (con y₁=x², y₂=x²ln x) es:",
+    opciones: ["x²(ln x)²/2","x²ln x","x²(ln x)³/6","x(ln x)²"],
+    respuesta_correcta: "x²(ln x)²/2",
+    dificultad: "experto", puntos: 500
+  },
+  {
+    pregunta: "El operador inverso 1/(D²+1) aplicado a sin(x) con D²sin x = -sin x produce:",
+    opciones: ["-x·cos(x)/2","x·sin(x)/2","sin(x)/2","-cos(x)/2"],
+    respuesta_correcta: "-x·cos(x)/2",
+    dificultad: "experto", puntos: 500
+  },
+  {
+    pregunta: "La condición necesaria y suficiente para que el problema de valor inicial de una EDO lineal de orden n tenga solución única en [a,b] es que:",
+    opciones: ["Los coeficientes y g(x) sean continuos en [a,b] y aₙ(x)≠0","Los coeficientes sean constantes","g(x) = 0","El Wronskiano sea 0"],
+    respuesta_correcta: "Los coeficientes y g(x) sean continuos en [a,b] y aₙ(x)≠0",
+    dificultad: "experto", puntos: 500
+  },
+  {
+    pregunta: "Si A es el operador anulador de f(x) y L es el operador de la EDO L[y] = f(x), aplicar A a ambos lados transforma la no homogénea en:",
+    opciones: ["A·L[y] = 0 (homogénea de mayor orden)","L[y] = 0","A[y] = f(x)","L·A[y] = f(x)"],
+    respuesta_correcta: "A·L[y] = 0 (homogénea de mayor orden)",
+    dificultad: "experto", puntos: 500
+  },
+  {
+    pregunta: "La EDO y'' + (1/x)y' = 0 (sin término y) con reducción de orden p=y' se reduce a:",
+    opciones: ["p' + p/x = 0","p' = p","p'' + p/x = 0","xp' + p = 0"],
+    respuesta_correcta: "p' + p/x = 0",
+    dificultad: "experto", puntos: 500
+  },
+  {
+    pregunta: "La fórmula de variación de parámetros para sistemas de n ecuaciones usa la matriz fundamental Φ(x). La solución particular es:",
+    opciones: ["yₚ = Φ(x)∫Φ⁻¹(x)g(x)dx","yₚ = Φ(x)g(x)","yₚ = ∫Φ(x)dx","yₚ = Φ⁻¹(x)g(x)"],
+    respuesta_correcta: "yₚ = Φ(x)∫Φ⁻¹(x)g(x)dx",
+    dificultad: "experto", puntos: 500
+  },
+  {
+    pregunta: "En la identidad del operador exponencial: eᵃˣf(D)e⁻ᵃˣ =",
+    opciones: ["f(D-a)","f(D+a)","f(a)","eᵃˣf(D)"],
+    respuesta_correcta: "f(D-a)",
+    dificultad: "experto", puntos: 500
+  },
+  {
+    pregunta: "Para la EDO y⁽⁶⁾ + y''' = 0, la solución general tiene cuántos términos independientes:",
+    opciones: ["6","3","9","4"],
+    respuesta_correcta: "6",
+    dificultad: "experto", puntos: 500
+  },
+  {
+    pregunta: "El número de condiciones iniciales necesarias para determinar la solución única de una EDO lineal de orden n es:",
+    opciones: ["n (valor de y y sus n-1 derivadas en x₀)","n+1","2n","1"],
+    respuesta_correcta: "n (valor de y y sus n-1 derivadas en x₀)",
+    dificultad: "experto", puntos: 500
+  },
+  {
+    pregunta: "La identidad operatorial 1/f(D)[eᵃˣg(x)] =",
+    opciones: ["eᵃˣ · 1/f(D+a)[g(x)]","eᵃˣ · 1/f(a)[g(x)]","1/f(D)[g(x)]·eᵃˣ","eᵃˣ/f(D)[g(x)]"],
+    respuesta_correcta: "eᵃˣ · 1/f(D+a)[g(x)]",
+    dificultad: "experto", puntos: 500
+  },
+  {
+    pregunta: "La ecuación y'' + P(x)y' + Q(x)y = 0 tiene el factor integrante μ relacionado con el Wronskiano por:",
+    opciones: ["W = Ce^(-∫P dx)","W = C (constante)","W = e^(∫Q dx)","W = P(x)Q(x)"],
+    respuesta_correcta: "W = Ce^(-∫P dx)",
+    dificultad: "experto", puntos: 500
+  },
+  {
+    pregunta: "Si la ec. característica de orden 4 tiene raíz compleja r = 2+3i con multiplicidad 2, los términos en yₕ son:",
+    opciones: ["e²ˣ(C₁+C₂x)cos(3x)+e²ˣ(C₃+C₄x)sin(3x)","C₁e²ˣcos(3x)+C₂e²ˣsin(3x)","(C₁+C₂x)(C₃cos(3x)+C₄sin(3x))","e²ˣ(C₁cos(3x)+C₂sin(3x))"],
+    respuesta_correcta: "e²ˣ(C₁+C₂x)cos(3x)+e²ˣ(C₃+C₄x)sin(3x)",
+    dificultad: "experto", puntos: 500
+  },
+  {
+    pregunta: "Para y'' - 2y' + y = eˣ/x², la solución particular por variación de parámetros es:",
+    opciones: ["-eˣ(1 + ln x)","eˣln x","eˣ/x","-eˣ/x"],
+    respuesta_correcta: "-eˣ(1 + ln x)",
+    dificultad: "experto", puntos: 500
+  },
+  {
+    pregunta: "La ecuación de Euler x²y'' + 5xy' + 4y = 0 tiene solución general (x>0):",
+    opciones: ["x⁻²(C₁+C₂ln x)","C₁x+C₂x⁻⁴","C₁x²+C₂x⁻²","x⁻²(C₁cos(ln x)+C₂sin(ln x))"],
+    respuesta_correcta: "x⁻²(C₁+C₂ln x)",
+    dificultad: "experto", puntos: 500
+  },
+  {
+    pregunta: "El operador 1/(D²+a²) aplicado a sin(ax) (caso resonante) resulta en:",
+    opciones: ["-x·cos(ax)/(2a)","-cos(ax)/(2a²)","x·sin(ax)/(2a)","cos(ax)/a²"],
+    respuesta_correcta: "-x·cos(ax)/(2a)",
+    dificultad: "experto", puntos: 500
+  },
+  {
+    pregunta: "Si {y₁,...,yₙ} es un conjunto fundamental de soluciones, el Wronskiano W satisface la ecuación de Abel W' =",
+    opciones: ["-aₙ₋₁(x)/aₙ(x) · W","aₙ₋₁(x)·W","W·aₙ(x)","0 (siempre)"],
+    respuesta_correcta: "-aₙ₋₁(x)/aₙ(x) · W",
+    dificultad: "experto", puntos: 500
+  },
+  {
+    pregunta: "Para y⁽⁴⁾ + 2y'' + y = 0, las raíces de la ec. característica son:",
+    opciones: ["r = ±i (doble)","r = ±i, ±1","r = ±√2·i","r = 0, ±i, 1"],
+    respuesta_correcta: "r = ±i (doble)",
+    dificultad: "experto", puntos: 500
+  },
+  {
+    pregunta: "En la representación operatorial, 1/D·f(x) equivale a:",
+    opciones: ["∫f(x)dx","f'(x)","f(x)/D","Df(x)"],
+    respuesta_correcta: "∫f(x)dx",
+    dificultad: "experto", puntos: 500
+  },
+  {
+    pregunta: "La solución de y'' + y = sec³(x) por variación de parámetros involucra la integral:",
+    opciones: ["∫sec²(x)dx = tan(x)","∫sec(x)dx","∫cos(x)dx","∫tan(x)dx"],
+    respuesta_correcta: "∫sec²(x)dx = tan(x)",
+    dificultad: "experto", puntos: 500
+  },
+  {
+    pregunta: "El método del operador anulador falla directamente para funciones como:",
+    opciones: ["ln(x), tan(x), 1/x","e^x, sin(x), cos(x)","polinomios en x","e^ax·P(x)"],
+    respuesta_correcta: "ln(x), tan(x), 1/x",
+    dificultad: "experto", puntos: 500
+  },
+  {
+    pregunta: "La dimensión del espacio solución de una EDO lineal homogénea de orden n con coeficientes continuos es:",
+    opciones: ["n","n-1","infinita","1"],
+    respuesta_correcta: "n",
+    dificultad: "experto", puntos: 500
+  },
+  {
+    pregunta: "Para y'' + p(x)y' + q(x)y = g(x), si y₁,y₂ son sol. de la homogénea, la yₚ por var. de parámetros es yₚ = -y₁∫(y₂g/W)dx +",
+    opciones: ["y₂∫(y₁g/W)dx","-y₂∫(y₁g/W)dx","y₁∫(y₁g/W)dx","y₂∫(y₂g/W)dx"],
+    respuesta_correcta: "y₂∫(y₁g/W)dx",
+    dificultad: "experto", puntos: 500
+  },
+  {
+    pregunta: "Una ecuación diferencial de la forma f(D)y = g(x) con f(D) = Dⁿ - aₙ₋₁Dⁿ⁻¹ - ... - a₀ admite como operador anulador de g=xeᵃˣ:",
+    opciones: ["(D-a)²","(D-a)","D²","D(D-a)"],
+    respuesta_correcta: "(D-a)²",
+    dificultad: "experto", puntos: 500
+  },
+  {
+    pregunta: "La solución de y'' + 4y' + 5y = 0 con y(0)=1, y'(0)=0 es:",
+    opciones: ["e⁻²ˣ(cos x + 2sin x)","e⁻²ˣcos x","e⁻²ˣ(cos x - sin x)","eˣcos(2x)"],
+    respuesta_correcta: "e⁻²ˣ(cos x + 2sin x)",
+    dificultad: "experto", puntos: 500
+  },
+  {
+    pregunta: "En el contexto del operador diferencial, el polinomio anulador mínimo de f(x) = (x² + 1)eˣ es de grado:",
+    opciones: ["3","2","4","5"],
+    respuesta_correcta: "3",
+    dificultad: "experto", puntos: 500
+  }
+];
+
+/* ============================================================
+   CONFIGURACIÓN GLOBAL
+   ============================================================ */
+const AVATARS = ['🧑‍🎓','👨‍💻','👩‍💻','🦸','🧙‍♂️','🦊','🐉','⚡','🌟','🔬'];
+const PREGUNTAS_POR_PARTIDA = 20;
+const TIEMPO_POR_PREGUNTA   = 30;
+const BONUS_RACHA   = 100;
+const BONUS_RAPIDO  = 50;
+const VIDAS_INICIAL = 3;
+const LS_RANKING    = 'diffeq_ranking_v2';
+const LS_JUGADORES  = 'diffeq_jugadores_v2';
+
+/* Estado del juego */
+let state = {
+  player: { name: '', avatar: '🧑‍🎓', mode: 'normal' },
+  questions: [],
+  currentQ: 0,
+  score: 0,
+  streak: 0,
+  lives: VIDAS_INICIAL,
+  correct: 0,
+  wrong: 0,
+  timerValue: TIEMPO_POR_PREGUNTA,
+  timerInterval: null,
+  answered: false,
+  startTime: 0,
+  badges: [],
+  maxStreak: 0
+};
+
+let selectedAvatar = 0;
+
+/* ============================================================
+   PARTÍCULAS MATEMÁTICAS
+   ============================================================ */
+function initParticles() {
+  const symbols = ['∂','∫','∑','∇','Δ','λ','ω','α','β','γ','ε','μ','π','φ','ψ','∞','≡','→','⊕','W'];
+  const container = document.getElementById('particles-container');
+  for (let i = 0; i < 18; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    p.textContent = symbols[Math.floor(Math.random() * symbols.length)];
+    p.style.cssText = `
+      left: ${Math.random() * 100}%;
+      animation-duration: ${8 + Math.random() * 12}s;
+      animation-delay: ${-Math.random() * 15}s;
+      font-size: ${12 + Math.random() * 16}px;
+      opacity: ${0.08 + Math.random() * 0.15};
+    `;
+    container.appendChild(p);
+  }
+}
+
+/* ============================================================
+   NAVEGACIÓN ENTRE PANTALLAS
+   ============================================================ */
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+/* ============================================================
+   PANTALLA BIENVENIDA
+   ============================================================ */
+function showLogin() {
+  buildAvatarGrid();
+  showScreen('screen-login');
+  checkAlreadyPlayed();
+}
+
+function checkAlreadyPlayed() {
+  // Se omite la restricción de "una sola vez" si el input ya tiene nombre
+  // (para no bloquear demo), pero se puede activar con el sistema de jugadores
+  const name = document.getElementById('inputName').value.trim();
+  const played = getPlayedPlayers();
+  const msg = document.getElementById('already-played-msg');
+  if (name && played.includes(name.toLowerCase())) {
+    msg.style.display = 'block';
+    document.getElementById('btnLogin').disabled = true;
+  } else {
+    msg.style.display = 'none';
+    document.getElementById('btnLogin').disabled = false;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('inputName').addEventListener('input', checkAlreadyPlayed);
+});
+
+function getPlayedPlayers() {
+  try { return JSON.parse(localStorage.getItem(LS_JUGADORES) || '[]'); }
+  catch { return []; }
+}
+
+function markAsPlayed(name) {
+  const list = getPlayedPlayers();
+  if (!list.includes(name.toLowerCase())) {
+    list.push(name.toLowerCase());
+    localStorage.setItem(LS_JUGADORES, JSON.stringify(list));
+  }
+}
+
+/* ============================================================
+   AVATAR GRID
+   ============================================================ */
+function buildAvatarGrid() {
+  const grid = document.getElementById('avatarGrid');
+  grid.innerHTML = '';
+  AVATARS.forEach((av, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'avatar-btn' + (i === selectedAvatar ? ' selected' : '');
+    btn.textContent = av;
+    btn.onclick = () => {
+      selectedAvatar = i;
+      document.querySelectorAll('.avatar-btn').forEach((b,j) =>
+        b.classList.toggle('selected', j === i));
+    };
+    grid.appendChild(btn);
+  });
+}
+
+/* ============================================================
+   LOGIN
+   ============================================================ */
+function doLogin() {
+  const name = document.getElementById('inputName').value.trim();
+  if (!name) { alert('Por favor ingresa tu nombre.'); return; }
+
+  const played = getPlayedPlayers();
+  if (played.includes(name.toLowerCase())) {
+    document.getElementById('already-played-msg').style.display = 'block';
+    document.getElementById('btnLogin').disabled = true;
+    return;
+  }
+
+  state.player.name   = name;
+  state.player.avatar = AVATARS[selectedAvatar];
+  state.player.mode   = document.getElementById('selectMode').value;
+  showScreen('screen-instructions');
+}
+
+/* ============================================================
+   INICIO DEL JUEGO
+   ============================================================ */
+function startGame() {
+  // Reiniciar estado
+  state.questions = shuffleArray([...BANCO]).slice(0, PREGUNTAS_POR_PARTIDA);
+  state.currentQ  = 0;
+  state.score     = 0;
+  state.streak    = 0;
+  state.lives     = VIDAS_INICIAL;
+  state.correct   = 0;
+  state.wrong     = 0;
+  state.answered  = false;
+  state.badges    = [];
+  state.maxStreak = 0;
+
+  // Actualizar UI fija del juego
+  document.getElementById('gameAvatar').textContent = state.player.avatar;
+  document.getElementById('gameName').textContent   = state.player.name;
+  document.getElementById('scoreDisplay').textContent = '0';
+
+  updateLives();
+  showScreen('screen-game');
+  renderQuestion();
+}
+
+/* ============================================================
+   RENDER PREGUNTA
+   ============================================================ */
+function renderQuestion() {
+  const q = state.questions[state.currentQ];
+  state.answered = false;
+
+  // Meta
+  const qNum  = state.currentQ + 1;
+  const total = state.questions.length;
+  document.getElementById('qProgress').textContent   = `Pregunta ${qNum} de ${total}`;
+  document.getElementById('qNumberLabel').textContent = `Pregunta ${qNum}`;
+  document.getElementById('qPointsLabel').textContent = `+${q.puntos} pts`;
+
+  // Badge dificultad
+  const diffEl = document.getElementById('qDiff');
+  const diffMap = { facil:'diff-easy', media:'diff-media', dificil:'diff-dificil', experto:'diff-experto' };
+  const diffLabel= { facil:'Fácil', media:'Media', dificil:'Difícil', experto:'Experto' };
+  diffEl.className  = 'diff-badge ' + (diffMap[q.dificultad] || 'diff-easy');
+  diffEl.textContent = diffLabel[q.dificultad] || 'Fácil';
+
+  // Progreso
+  const pct = ((qNum - 1) / total) * 100;
+  document.getElementById('progressBar').style.width = pct + '%';
+
+  // Pregunta
+  document.getElementById('questionText').textContent = q.pregunta;
+
+  // Opciones
+  const grid = document.getElementById('optionsGrid');
+  grid.innerHTML = '';
+  const labels = ['A','B','C','D'];
+  shuffleArray([...q.opciones]).forEach((op, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'option-btn';
+    btn.innerHTML = `<span class="option-label">${labels[i]}</span><span>${op}</span>`;
+    btn.onclick = (e) => { addRipple(btn, e); answerQuestion(op, btn); };
+    grid.appendChild(btn);
+  });
+
+  // Ocultar feedback
+  const fb = document.getElementById('feedbackBar');
+  fb.className = 'feedback-bar';
+
+  // Animación tarjeta
+  const card = document.getElementById('questionCard');
+  card.style.animation = 'none';
+  void card.offsetWidth;
+  card.style.animation = 'fadeInUp 0.4s ease forwards';
+
+  // Racha
+  document.getElementById('streakCount').textContent = state.streak;
+
+  // Temporizador
+  startTimer();
+}
+
+/* ============================================================
+   TEMPORIZADOR
+   ============================================================ */
+function startTimer() {
+  clearInterval(state.timerInterval);
+  state.timerValue = TIEMPO_POR_PREGUNTA;
+  state.startTime  = Date.now();
+  updateTimerUI(TIEMPO_POR_PREGUNTA);
+
+  state.timerInterval = setInterval(() => {
+    state.timerValue--;
+    updateTimerUI(state.timerValue);
+    if (state.timerValue <= 0) {
+      clearInterval(state.timerInterval);
+      if (!state.answered) timeOut();
+    }
+  }, 1000);
+}
+
+function updateTimerUI(val) {
+  const max = TIEMPO_POR_PREGUNTA;
+  const pct = val / max;
+  const circumference = 2 * Math.PI * 26; // r=26
+
+  const ring   = document.getElementById('timerRing');
+  const number = document.getElementById('timerNumber');
+  const bar    = document.getElementById('timerBar');
+
+  ring.style.strokeDashoffset = circumference * (1 - pct);
+  number.textContent = val;
+  bar.style.width    = (pct * 100) + '%';
+
+  // Color según tiempo
+  const isWarning = val <= 15 && val > 8;
+  const isDanger  = val <= 8;
+
+  ring.className   = 'timer-ring' + (isDanger ? ' danger' : isWarning ? ' warning' : '');
+  number.className = 'timer-number' + (isDanger ? ' danger' : isWarning ? ' warning' : '');
+
+  const color = isDanger ? 'var(--neon-pink)' : isWarning ? 'var(--neon-yellow)' : 'var(--neon-blue)';
+  bar.style.background = color;
+}
+
+function timeOut() {
+  state.answered = true;
+  state.wrong++;
+  state.streak = 0;
+
+  if (state.player.mode === 'survival') {
+    state.lives--;
+    updateLives();
+    if (state.lives <= 0) { endGame(); return; }
+  }
+
+  showFeedback(false, 'Tiempo agotado ⏱️', 'La respuesta correcta está marcada en verde.', 0);
+  markCorrectAnswer();
+  scheduleNextQuestion();
+}
+
+/* ============================================================
+   RESPONDER
+   ============================================================ */
+function answerQuestion(opcion, btnEl) {
+  if (state.answered) return;
+  state.answered = true;
+  clearInterval(state.timerInterval);
+
+  const q        = state.questions[state.currentQ];
+  const isCorrect = opcion === q.respuesta_correcta;
+  const elapsed   = (Date.now() - state.startTime) / 1000;
+  let pts = 0;
+  let bonusMsg = '';
+
+  // Deshabilitar todas las opciones
+  document.querySelectorAll('.option-btn').forEach(b => b.disabled = true);
+
+  if (isCorrect) {
+    state.correct++;
+    pts = q.puntos;
+    btnEl.classList.add('correct');
+
+    // Bonus rapidez
+    if (elapsed <= 10) {
+      pts += BONUS_RAPIDO;
+      bonusMsg += ` +${BONUS_RAPIDO} rápido`;
+    }
+
+    // Bonus racha
+    state.streak++;
+    if (state.streak > state.maxStreak) state.maxStreak = state.streak;
+    document.getElementById('streakCount').textContent = state.streak;
+
+    if (state.streak > 0 && state.streak % 3 === 0) {
+      pts += BONUS_RACHA;
+      bonusMsg += ` +${BONUS_RACHA} racha 🔥`;
+      showBonusPopup('🔥 ¡RACHA ×3! +' + BONUS_RACHA);
+    }
+
+    state.score += pts;
+    updateScoreDisplay();
+    showFeedback(true, '¡Correcto! ✓', `Ganaste ${pts} pts${bonusMsg}`, pts);
+
+  } else {
+    state.wrong++;
+    state.streak = 0;
+    document.getElementById('streakCount').textContent = '0';
+    btnEl.classList.add('wrong');
+    markCorrectAnswer();
+
+    if (state.player.mode === 'survival') {
+      state.lives--;
+      updateLives();
+    }
+
+    showFeedback(false, 'Incorrecto ✗',
+      `Respuesta correcta: ${q.respuesta_correcta}`, 0);
+
+    if (state.player.mode === 'survival' && state.lives <= 0) {
+      setTimeout(endGame, 1800);
+      return;
+    }
+  }
+
+  scheduleNextQuestion();
+}
+
+function markCorrectAnswer() {
+  const q = state.questions[state.currentQ];
+  document.querySelectorAll('.option-btn').forEach(btn => {
+    const text = btn.querySelectorAll('span')[1]?.textContent;
+    if (text === q.respuesta_correcta) btn.classList.add('correct');
+  });
+}
+
+function scheduleNextQuestion() {
+  setTimeout(() => {
+    state.currentQ++;
+    if (state.currentQ >= state.questions.length) {
+      endGame();
+    } else {
+      renderQuestion();
+    }
+  }, 2000);
+}
+
+function updateScoreDisplay() {
+  const el = document.getElementById('scoreDisplay');
+  el.textContent = state.score;
+  el.style.animation = 'none';
+  void el.offsetWidth;
+  el.style.animation = 'pulseGlow 0.5s ease';
+}
+
+/* ============================================================
+   VIDAS
+   ============================================================ */
+function updateLives() {
+  const container = document.getElementById('livesDisplay');
+  container.innerHTML = '';
+  if (state.player.mode !== 'survival') {
+    container.innerHTML = '<span style="font-size:0.8rem;color:var(--text-muted)">Modo normal</span>';
+    return;
+  }
+  for (let i = 0; i < VIDAS_INICIAL; i++) {
+    const life = document.createElement('span');
+    life.className = 'life' + (i >= state.lives ? ' lost' : '');
+    life.textContent = '❤️';
+    container.appendChild(life);
+  }
+}
+
+/* ============================================================
+   FEEDBACK BAR
+   ============================================================ */
+function showFeedback(correct, title, desc, pts) {
+  const bar    = document.getElementById('feedbackBar');
+  const icon   = document.getElementById('feedbackIcon');
+  const ftitle = document.getElementById('feedbackTitle');
+  const fdesc  = document.getElementById('feedbackDesc');
+  const fpts   = document.getElementById('feedbackPoints');
+
+  bar.className = 'feedback-bar show ' + (correct ? 'correct-fb' : 'wrong-fb');
+  icon.textContent  = correct ? '✅' : '❌';
+  ftitle.textContent = title;
+  fdesc.textContent  = desc;
+  ftitle.style.color = correct ? 'var(--neon-green)' : 'var(--neon-pink)';
+
+  if (correct && pts > 0) {
+    fpts.textContent = '+' + pts;
+    fpts.className   = 'feedback-points gained';
+  } else {
+    fpts.textContent = '0';
+    fpts.className   = 'feedback-points lost';
+  }
+}
+
+/* ============================================================
+   BONUS POPUP
+   ============================================================ */
+function showBonusPopup(msg) {
+  const el = document.getElementById('bonusPopup');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 1800);
+}
+
+/* ============================================================
+   RIPPLE EFFECT
+   ============================================================ */
+function addRipple(btn, e) {
+  const rect   = btn.getBoundingClientRect();
+  const size   = Math.max(rect.width, rect.height);
+  const x      = (e.clientX - rect.left) - size / 2;
+  const y      = (e.clientY - rect.top)  - size / 2;
+  const ripple = document.createElement('span');
+  ripple.className = 'ripple';
+  ripple.style.cssText = `width:${size}px;height:${size}px;left:${x}px;top:${y}px`;
+  btn.appendChild(ripple);
+  setTimeout(() => ripple.remove(), 600);
+}
+
+/* ============================================================
+   FIN DEL JUEGO
+   ============================================================ */
+function endGame() {
+  clearInterval(state.timerInterval);
+  computeBadges();
+  saveToRanking();
+  markAsPlayed(state.player.name);
+  renderResults();
+  showScreen('screen-results');
+}
+
+function computeBadges() {
+  state.badges = [];
+  const { correct, wrong, score, maxStreak, player } = state;
+  const total = correct + wrong;
+
+  if (correct === total && total > 0) state.badges.push({ icon:'🏆', label:'Perfecto' });
+  if (score >= 3000)   state.badges.push({ icon:'💎', label:'Legendario' });
+  if (score >= 1500)   state.badges.push({ icon:'🌟', label:'Brillante' });
+  if (maxStreak >= 5)  state.badges.push({ icon:'🔥', label:'En Llamas' });
+  if (maxStreak >= 3)  state.badges.push({ icon:'⚡', label:'Racha x3' });
+  if (correct >= 15)   state.badges.push({ icon:'🎯', label:'Certero' });
+  if (player.mode === 'survival' && state.lives > 0) state.badges.push({ icon:'💀', label:'Sobreviviente' });
+  if (wrong === 0)     state.badges.push({ icon:'🛡️', label:'Invicto' });
+}
+
+/* ============================================================
+   RENDER RESULTADOS
+   ============================================================ */
+function renderResults() {
+  const { player, score, correct, wrong, maxStreak, questions } = state;
+  const total = correct + wrong;
+  const pct   = total > 0 ? Math.round((correct / total) * 100) : 0;
+
+  document.getElementById('resultAvatar').textContent = player.avatar;
+  document.getElementById('resultName').textContent   = player.name;
+
+  // Animación contador de puntaje
+  animateCounter(document.getElementById('finalScore'), 0, score, 1200);
+
+  // Mensaje de desempeño
+  const msgs = [
+    [90, '🎓 Excelente dominio del tema. ¡Profesor material!'],
+    [70, '⚡ Muy buen resultado. ¡Sigue practicando!'],
+    [50, '📚 Buen intento. Repasa los temas difíciles.'],
+    [0,  '🔄 Hay margen de mejora. ¡Inténtalo de nuevo!']
+  ];
+  const m = msgs.find(([min]) => pct >= min);
+  document.getElementById('performanceMsg').textContent = m ? m[1] : '';
+
+  // Stats
+  const stats = [
+    { value: correct, label: 'Correctas', color: 'var(--neon-green)' },
+    { value: wrong,   label: 'Incorrectas', color: 'var(--neon-pink)' },
+    { value: pct + '%', label: 'Precisión', color: 'var(--neon-blue)' },
+    { value: maxStreak, label: 'Mejor racha', color: 'var(--neon-yellow)' },
+    { value: questions.length, label: 'Preguntas', color: 'var(--text-main)' },
+    { value: player.mode === 'survival' ? state.lives + '❤️' : '—', label: 'Vidas restantes', color: 'var(--neon-pink)' }
+  ];
+
+  const statsEl = document.getElementById('resultStats');
+  statsEl.innerHTML = stats.map(s => `
+    <div class="stat-box">
+      <div class="stat-value" style="color:${s.color}">${s.value}</div>
+      <div class="stat-label">${s.label}</div>
+    </div>
+  `).join('');
+
+  // Insignias
+  const allBadges = [
+    { icon:'🏆', label:'Perfecto' },
+    { icon:'💎', label:'Legendario' },
+    { icon:'🌟', label:'Brillante' },
+    { icon:'🔥', label:'En Llamas' },
+    { icon:'⚡', label:'Racha x3' },
+    { icon:'🎯', label:'Certero' },
+    { icon:'💀', label:'Sobreviviente' },
+    { icon:'🛡️', label:'Invicto' }
+  ];
+
+  const earnedLabels = state.badges.map(b => b.label);
+  document.getElementById('badgesGrid').innerHTML = allBadges.map(b => `
+    <div class="badge-item ${earnedLabels.includes(b.label) ? 'earned' : ''}">
+      <span class="badge-icon">${b.icon}</span>${b.label}
+    </div>
+  `).join('');
+}
+
+/* ============================================================
+   RANKING
+   ============================================================ */
+function getRanking() {
+  try { return JSON.parse(localStorage.getItem(LS_RANKING) || '[]'); }
+  catch { return []; }
+}
+
+function saveToRanking() {
+  const ranking = getRanking();
+  const entry   = {
+    name:   state.player.name,
+    avatar: state.player.avatar,
+    score:  state.score,
+    correct:state.correct,
+    total:  state.correct + state.wrong,
+    mode:   state.player.mode,
+    date:   new Date().toLocaleDateString('es-CO')
+  };
+
+  // Actualizar si ya existe (conservar mejor puntaje)
+  const idx = ranking.findIndex(r => r.name.toLowerCase() === entry.name.toLowerCase());
+  if (idx >= 0) {
+    if (entry.score > ranking[idx].score) ranking[idx] = entry;
+  } else {
+    ranking.push(entry);
+  }
+
+  ranking.sort((a, b) => b.score - a.score);
+  localStorage.setItem(LS_RANKING, JSON.stringify(ranking.slice(0, 50)));
+}
+
+function showRankingGlobal() {
+  renderRanking();
+  showScreen('screen-ranking');
+}
+
+function renderRanking() {
+  const ranking = getRanking();
+  const podium  = document.getElementById('rankingPodium');
+  const list    = document.getElementById('rankingList');
+
+  if (ranking.length === 0) {
+    podium.innerHTML = '<p class="ranking-empty" style="width:100%">No hay puntajes registrados todavía.</p>';
+    list.innerHTML   = '';
+    return;
+  }
+
+  // Pódium (top 3)
+  const top3 = ranking.slice(0, 3);
+  const podiumOrder = [top3[1], top3[0], top3[2]].filter(Boolean);
+  const blockClass  = ['podium-2','podium-1','podium-3'];
+  const positions   = [2, 1, 3];
+
+  podium.innerHTML = '';
+  podiumOrder.forEach((entry, i) => {
+    const pos  = i === 1 ? 0 : i === 0 ? 1 : 2;
+    const step = document.createElement('div');
+    step.className = 'podium-step';
+    step.innerHTML = `
+      <div class="podium-avatar">${entry.avatar}</div>
+      <div class="podium-name">${entry.name}</div>
+      <div class="podium-score" style="color:${pos===0?'var(--neon-yellow)':pos===1?'#94a3b8':'#c07a4b'}">${entry.score}</div>
+      <div class="podium-block ${blockClass[pos]}">${positions[pos]}</div>
+    `;
+    podium.appendChild(step);
+  });
+
+  // Lista completa
+  const currentName = state.player?.name?.toLowerCase() || '';
+  list.innerHTML = ranking.map((entry, i) => `
+    <li class="ranking-row ${entry.name.toLowerCase() === currentName ? 'highlight' : ''}">
+      <span class="rank-pos" style="color:${i===0?'var(--neon-yellow)':i===1?'#94a3b8':i===2?'#c07a4b':'var(--text-muted)'}">${i < 3 ? ['🥇','🥈','🥉'][i] : '#'+(i+1)}</span>
+      <span class="rank-avatar">${entry.avatar}</span>
+      <span class="rank-name">${entry.name}${entry.name.toLowerCase()===currentName?' ← tú':''}</span>
+      <div class="rank-info">
+        <span class="rank-score">${entry.score}</span>
+        <span class="rank-meta">${entry.correct}/${entry.total} • ${entry.mode === 'survival' ? '💀' : '🎯'} • ${entry.date}</span>
+      </div>
+    </li>
+  `).join('');
+}
+
+function clearRanking() {
+  if (confirm('¿Seguro que deseas borrar todos los puntajes?')) {
+    localStorage.removeItem(LS_RANKING);
+    localStorage.removeItem(LS_JUGADORES);
+    renderRanking();
+  }
+}
+
+/* ============================================================
+   REINICIAR
+   ============================================================ */
+function restartGame() {
+  const name = state.player.name;
+  const played = getPlayedPlayers();
+  if (played.includes(name.toLowerCase())) {
+    alert('Ya completaste tu partida, ' + name + '. Solo se permite una partida por estudiante. Puedes ver tu resultado en el ranking.');
+    showRankingGlobal();
+    return;
+  }
+  showScreen('screen-instructions');
+}
+
+/* ============================================================
+   UTILIDADES
+   ============================================================ */
+function shuffleArray(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function animateCounter(el, from, to, duration) {
+  const step = (to - from) / (duration / 16);
+  let current = from;
+  const timer = setInterval(() => {
+    current += step;
+    if ((step > 0 && current >= to) || (step < 0 && current <= to)) {
+      current = to;
+      clearInterval(timer);
+    }
+    el.textContent = Math.round(current);
+  }, 16);
+}
+
+/* ============================================================
+   INICIALIZACIÓN
+   ============================================================ */
+initParticles();
+
+/* ============================================================
+   ██████████████████████████████████████████████████████████
+   MÓDULO ADMINISTRADOR — SOLO ACCESO CON PIN
+   ██████████████████████████████████████████████████████████
+   ============================================================ */
+
+/* ── Configuración de seguridad ──────────────────────────── */
+// ⚠️ CAMBIA ESTE PIN ANTES DE PUBLICAR EL JUEGO
+const ADMIN_PIN      = '123456';
+const LS_FULL_LOG    = 'diffeq_fulllog_v2';   // Registro detallado completo
+let   adminUnlocked  = false;
+let   pinBuffer      = '';
+
+/* ── Datos de sesión para el registro detallado ─────────── */
+let sessionStartTime = null;   // marca de tiempo cuando empieza la partida
+
+/* Inyectar marca de inicio cuando comienza el juego (parchamos startGame) */
+const _origStartGame = startGame;
+window.startGame = function() {
+  sessionStartTime = Date.now();
+  _origStartGame();
+};
+
+/* Inyectar guardado detallado cuando termina el juego (parchamos endGame) */
+const _origEndGame = endGame;
+window.endGame = function() {
+  _origEndGame();
+  saveFullLog();
+};
+
+/* ── Guardar registro detallado ──────────────────────────── */
+function saveFullLog() {
+  const log = getFullLog();
+  const duration = sessionStartTime
+    ? Math.round((Date.now() - sessionStartTime) / 1000)
+    : 0;
+
+  const entry = {
+    id:          Date.now(),
+    name:        state.player.name,
+    avatar:      state.player.avatar,
+    mode:        state.player.mode,
+    score:       state.score,
+    correct:     state.correct,
+    wrong:       state.wrong,
+    total:       state.correct + state.wrong,
+    accuracy:    state.correct + state.wrong > 0
+                   ? Math.round((state.correct / (state.correct + state.wrong)) * 100)
+                   : 0,
+    maxStreak:   state.maxStreak,
+    livesLeft:   state.player.mode === 'survival' ? state.lives : VIDAS_INICIAL,
+    badges:      state.badges.map(b => b.icon + b.label).join(', '),
+    badgeCount:  state.badges.length,
+    durationSec: duration,
+    durationStr: formatDuration(duration),
+    datetime:    new Date().toLocaleString('es-CO', {
+                   year:'numeric', month:'2-digit', day:'2-digit',
+                   hour:'2-digit', minute:'2-digit', second:'2-digit'
+                 }),
+    date:        new Date().toLocaleDateString('es-CO'),
+    time:        new Date().toLocaleTimeString('es-CO')
+  };
+
+  // Siempre agregar (historial completo, incluso múltiples intentos si el admin reinicia)
+  log.push(entry);
+  localStorage.setItem(LS_FULL_LOG, JSON.stringify(log));
+}
+
+function getFullLog() {
+  try { return JSON.parse(localStorage.getItem(LS_FULL_LOG) || '[]'); }
+  catch { return []; }
+}
+
+function formatDuration(secs) {
+  const m = Math.floor(secs / 60);
+  const s = secs % 60;
+  return `${m}m ${s}s`;
+}
+
+/* ── PIN KEYPAD ──────────────────────────────────────────── */
+function showAdminLogin() {
+  pinBuffer = '';
+  updatePinDots();
+  document.getElementById('pinError').textContent = '';
+  showScreen('screen-admin-login');
+}
+
+function pinPress(digit) {
+  if (pinBuffer.length >= 6) return;
+  pinBuffer += digit;
+  updatePinDots();
+  if (pinBuffer.length === 6) {
+    // Auto-verificar al completar
+    setTimeout(pinEnter, 150);
+  }
+}
+
+function pinDel() {
+  pinBuffer = pinBuffer.slice(0, -1);
+  updatePinDots();
+}
+
+function pinEnter() {
+  if (pinBuffer === ADMIN_PIN) {
+    adminUnlocked = true;
+    document.getElementById('pinError').textContent = '';
+    openAdminPanel();
+  } else {
+    document.getElementById('pinError').textContent = '❌ PIN incorrecto. Intenta de nuevo.';
+    pinBuffer = '';
+    updatePinDots();
+    // Animar error
+    const display = document.getElementById('pinDisplay');
+    display.style.animation = 'none';
+    void display.offsetWidth;
+    display.style.animation = 'wrongShake 0.4s ease';
+  }
+}
+
+function updatePinDots() {
+  for (let i = 0; i < 6; i++) {
+    const dot = document.getElementById('pd' + i);
+    if (dot) dot.classList.toggle('filled', i < pinBuffer.length);
+  }
+}
+
+// Soporte teclado físico en pantalla de PIN
+document.addEventListener('keydown', e => {
+  const screen = document.getElementById('screen-admin-login');
+  if (!screen.classList.contains('active')) return;
+  if (e.key >= '0' && e.key <= '9') pinPress(e.key);
+  if (e.key === 'Backspace') pinDel();
+  if (e.key === 'Enter') pinEnter();
+});
+
+/* ── ABRIR PANEL ADMIN ───────────────────────────────────── */
+function openAdminPanel() {
+  adminRefresh();
+  showScreen('screen-admin');
+}
+
+function adminLogout() {
+  adminUnlocked = false;
+  pinBuffer     = '';
+  showScreen('screen-welcome');
+}
+
+function adminRefresh() {
+  if (!adminUnlocked) return;
+  renderAdminKpis();
+  renderAdminTable(getFullLog());
+}
+
+/* ── CALCULAR KPIs ───────────────────────────────────────── */
+function renderAdminKpis() {
+  const log = getFullLog();
+  const n   = log.length;
+
+  const avgScore   = n ? Math.round(log.reduce((a,r) => a + r.score, 0) / n) : 0;
+  const avgAcc     = n ? Math.round(log.reduce((a,r) => a + r.accuracy, 0) / n) : 0;
+  const topScore   = n ? Math.max(...log.map(r => r.score)) : 0;
+  const uniquePlayers = new Set(log.map(r => r.name.toLowerCase())).size;
+
+  const kpis = [
+    { label: 'Jugadores únicos', value: uniquePlayers, color: 'kpi-blue',   symbol: '👥' },
+    { label: 'Partidas totales', value: n,              color: 'kpi-purple', symbol: '🎮' },
+    { label: 'Puntaje promedio', value: avgScore,       color: 'kpi-green',  symbol: '📊' },
+    { label: 'Precisión media',  value: avgAcc + '%',   color: 'kpi-yellow', symbol: '🎯' }
+  ];
+
+  document.getElementById('adminKpis').innerHTML = kpis.map(k => `
+    <div class="kpi-card ${k.color}">
+      <div style="font-size:1.4rem;margin-bottom:6px">${k.symbol}</div>
+      <div class="kpi-value">${k.value}</div>
+      <div class="kpi-label">${k.label}</div>
+    </div>
+  `).join('');
+
+  // Resumen por dificultad (de preguntas acertadas acumuladas estimado por score)
+  renderDiffSummary(log);
+}
+
+function renderDiffSummary(log) {
+  const n = log.length;
+  const avgDur = n ? Math.round(log.reduce((a,r) => a + (r.durationSec||0), 0) / n) : 0;
+  const topStreak = n ? Math.max(...log.map(r => r.maxStreak || 0)) : 0;
+  const survivalCount = log.filter(r => r.mode === 'survival').length;
+  const normalCount   = log.filter(r => r.mode === 'normal').length;
+
+  const items = [
+    { label: '🎯 Normal',          val: normalCount,       max: n || 1,  color: 'var(--neon-blue)' },
+    { label: '💀 Supervivencia',   val: survivalCount,     max: n || 1,  color: 'var(--neon-pink)' },
+    { label: '⏱ Tiempo promedio',  val: formatDuration(avgDur), max: null, color: 'var(--neon-yellow)' },
+    { label: '🔥 Mejor racha',     val: topStreak,         max: null,    color: 'var(--neon-purple)' }
+  ];
+
+  document.getElementById('adminDiffSummary').innerHTML = items.map(it => `
+    <div class="diff-sum-item">
+      <div style="font-size:0.75rem;color:var(--text-muted);min-width:130px">${it.label}</div>
+      ${it.max !== null ? `
+      <div class="diff-sum-bar">
+        <div class="diff-sum-fill" style="width:${Math.round((it.val/it.max)*100)}%;background:${it.color}"></div>
+      </div>
+      <div style="font-family:var(--font-display);font-size:0.8rem;color:${it.color};min-width:28px;text-align:right">${it.val}</div>
+      ` : `
+      <div style="font-family:var(--font-display);font-size:0.82rem;color:${it.color};font-weight:700">${it.val}</div>
+      `}
+    </div>
+  `).join('');
+}
+
+/* ── RENDER TABLA ────────────────────────────────────────── */
+let adminCurrentData = [];
+
+function renderAdminTable(data) {
+  adminCurrentData = data;
+  document.getElementById('adminPlayerCount').textContent = data.length;
+
+  const tbody = document.getElementById('adminTableBody');
+
+  if (data.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="10" style="text-align:center;padding:40px;color:var(--text-muted)">
+          📭 No hay registros todavía. Los jugadores aparecerán aquí cuando completen la partida.
+        </td>
+      </tr>`;
+    return;
+  }
+
+  // Ordenar (por score desc por defecto)
+  const sorted = [...data].sort((a,b) => b.score - a.score);
+
+  tbody.innerHTML = sorted.map((r, i) => {
+    const accColor = r.accuracy >= 80 ? 'var(--neon-green)'
+                   : r.accuracy >= 50 ? 'var(--neon-yellow)'
+                   : 'var(--neon-pink)';
+    const pctFill = `
+      <div class="pct-bar-wrap">
+        <div class="pct-bar-fill" style="width:${r.accuracy}%;background:${accColor}"></div>
+      </div>`;
+
+    return `
+      <tr>
+        <td class="td-rank" style="color:${i===0?'var(--neon-yellow)':i===1?'#94a3b8':i===2?'#c07a4b':'var(--text-muted)'}">${
+          i < 3 ? ['🥇','🥈','🥉'][i] : '#'+(i+1)
+        }</td>
+        <td class="td-name" title="${r.name}">${r.avatar} ${r.name}</td>
+        <td class="td-score">${r.score.toLocaleString()}</td>
+        <td style="color:var(--neon-green);font-weight:600">${r.correct}<span style="color:var(--text-dim)">/${r.total}</span></td>
+        <td class="pct-bar-cell">
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="color:${accColor};font-weight:700;min-width:36px">${r.accuracy}%</span>
+            ${pctFill}
+          </div>
+        </td>
+        <td style="color:var(--neon-purple);font-family:var(--font-display)">${r.maxStreak || 0}🔥</td>
+        <td class="td-mode">${r.mode === 'survival' ? '💀 Surv.' : '🎯 Normal'}</td>
+        <td class="td-badges" title="${r.badges || '—'}">${
+          r.badgeCount > 0
+            ? r.badges.replace(/[^🏆💎🌟🔥⚡🎯💀🛡️]/gu, '').slice(0,8) + (r.badgeCount > 4 ? '…' : '')
+            : '<span style="color:var(--text-dim)">—</span>'
+        }</td>
+        <td style="color:var(--text-muted);font-family:var(--font-display)">${r.durationStr || '—'}</td>
+        <td class="td-date">${r.datetime || r.date}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+/* ── FILTRO + ORDENAMIENTO ───────────────────────────────── */
+function adminFilter() {
+  let data = getFullLog();
+  const search = document.getElementById('adminSearch').value.toLowerCase();
+  const mode   = document.getElementById('filterMode').value;
+  const sort   = document.getElementById('filterSort').value;
+
+  if (search) data = data.filter(r => r.name.toLowerCase().includes(search));
+  if (mode)   data = data.filter(r => r.mode === mode);
+
+  const [field, dir] = sort.split('-');
+  data.sort((a,b) => {
+    let va = a[field === 'name' ? 'name' : field === 'correct' ? 'correct' : field === 'date' ? 'id' : 'score'];
+    let vb = b[field === 'name' ? 'name' : field === 'correct' ? 'correct' : field === 'date' ? 'id' : 'score'];
+    if (field === 'name') { va = va.toLowerCase(); vb = vb.toLowerCase(); }
+    if (dir === 'desc') return vb > va ? 1 : -1;
+    return va > vb ? 1 : -1;
+  });
+
+  renderAdminTable(data);
+  renderAdminKpis();
+}
+
+/* ── EXPORTAR CSV ────────────────────────────────────────── */
+function exportCSV() {
+  const log = getFullLog();
+  if (log.length === 0) { showToast('⚠️ No hay datos para exportar.'); return; }
+
+  const headers = [
+    'Posición','Nombre','Avatar','Modo','Puntaje','Correctas','Incorrectas',
+    'Total preguntas','Precisión (%)','Mejor racha','Vidas restantes',
+    'Insignias','Núm. insignias','Duración','Fecha','Hora','Fecha y hora completa'
+  ];
+
+  // Ordenar por puntaje desc para el CSV
+  const sorted = [...log].sort((a,b) => b.score - a.score);
+
+  const rows = sorted.map((r, i) => [
+    i + 1,
+    `"${r.name.replace(/"/g,'""')}"`,
+    r.avatar,
+    r.mode === 'survival' ? 'Supervivencia' : 'Normal',
+    r.score,
+    r.correct,
+    r.wrong,
+    r.total,
+    r.accuracy,
+    r.maxStreak || 0,
+    r.livesLeft,
+    `"${(r.badges || '').replace(/"/g,'""')}"`,
+    r.badgeCount || 0,
+    r.durationStr || '',
+    r.date || '',
+    r.time || '',
+    `"${(r.datetime || '').replace(/"/g,'""')}"`
+  ].join(','));
+
+  const csv = '\uFEFF' + [headers.join(','), ...rows].join('\n'); // BOM para Excel
+  downloadFile(csv, `diffeq_resultados_${todayStr()}.csv`, 'text/csv;charset=utf-8;');
+  showToast('✅ CSV exportado correctamente (' + log.length + ' registros)');
+}
+
+/* ── EXPORTAR JSON ───────────────────────────────────────── */
+function exportJSON() {
+  const log = getFullLog();
+  if (log.length === 0) { showToast('⚠️ No hay datos para exportar.'); return; }
+
+  const sorted = [...log].sort((a,b) => b.score - a.score).map((r,i) => ({
+    posicion: i + 1, ...r
+  }));
+
+  const json = JSON.stringify({
+    exportado:  new Date().toLocaleString('es-CO'),
+    juego:      'DiffEQ Quest — Ecuaciones Diferenciales',
+    totalPartidas: log.length,
+    jugadoresUnicos: new Set(log.map(r => r.name.toLowerCase())).size,
+    resultados: sorted
+  }, null, 2);
+
+  downloadFile(json, `diffeq_resultados_${todayStr()}.json`, 'application/json');
+  showToast('✅ JSON exportado correctamente');
+}
+
+function downloadFile(content, filename, mime) {
+  const blob = new Blob([content], { type: mime });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+}
+
+/* ── LIMPIAR TODOS LOS DATOS ─────────────────────────────── */
+function adminClearAll() {
+  const log = getFullLog();
+  if (log.length === 0) { showToast('No hay datos que limpiar.'); return; }
+
+  if (confirm(`⚠️ ¿Eliminar TODOS los ${log.length} registros de jugadores?\n\nEsta acción no se puede deshacer.\nSe recomienda exportar primero.`)) {
+    localStorage.removeItem(LS_FULL_LOG);
+    localStorage.removeItem(LS_RANKING);
+    localStorage.removeItem(LS_JUGADORES);
+    adminRefresh();
+    showToast('🗑 Todos los datos han sido eliminados.');
+  }
+}
+
+/* ── TOAST HELPER ────────────────────────────────────────── */
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+</script>
+</body>
+</html>
