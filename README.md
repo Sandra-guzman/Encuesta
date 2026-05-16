@@ -1,1 +1,1 @@
-# TRivia de conocimientos
+# Trivia de conocimientos
